@@ -2,6 +2,10 @@
 
 **Vouched, not swiped.** An invite-only, friends-vouch-friends dating webapp.
 
+This repository follows [`hongyime/theprawntemplate`](https://github.com/hongyime/theprawntemplate).
+
+For agents: read `AGENTS.md` first, then `.agents/STATE.md` before changing files.
+
 Instead of swiping through strangers, you get in because a friend vouches for
 you — and your profile is built from what your friends say about you. One
 thoughtful match per cycle, computed with the Gale–Shapley stable-matching
@@ -69,3 +73,7 @@ algorithm. No infinite scroll.
 - Never commit `.env.local` (gitignored). `TELEGRAM_BOT_TOKEN` is server-only.
 - Telegram auth hashes are verified with `timingSafeEqual`; logins older than
   24h are rejected.
+
+## License
+
+Apache-2.0. See `LICENSE` and `NOTICE`.

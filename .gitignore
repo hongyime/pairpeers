@@ -78,3 +78,6 @@ skills/
 skills-lock.json
 docs/
 # End AI / editor dot directories (managed via sourcerepo)
+
+# supabase CLI temp files
+supabase/.temp/
