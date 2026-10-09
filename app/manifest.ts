@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "An invite-only, friends-vouch-friends way to meet someone new. One thoughtful match at a time.",
     start_url: "/",
     display: "standalone",
-    background_color: "#1a1a2e",
-    theme_color: "#1a1a2e",
+    background_color: "#FDFBF9",
+    theme_color: "#FDFBF9",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },

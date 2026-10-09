@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
+import { SESSION_COOKIE, SESSION_TTL_SECONDS, createSessionToken } from "@/lib/session";
 import { NONCE_COOKIE } from "./nonce/route";
 
 const ISSUER = "https://oauth.telegram.org";
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
       issuer: ISSUER,
       audience: clientId,
       algorithms: ["RS256", "ES256"], // pinned — never accept "none" or symmetric algs
+      requiredClaims: ["exp", "iat"], // fail closed if Telegram ever omits them
+      maxTokenAge: "1h", // id_tokens are short-lived; bound the replay window
     });
     payload = verified.payload as TelegramIdToken;
   } catch {
@@ -55,6 +58,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Replay protection: the token must carry the nonce we issued to this browser.
+  // NOTE (accepted risk, pilot): nonce consumption is cookie deletion. Two
+  // concurrent requests with the same token+nonce could both pass — but that
+  // only lets a user double-submit their own login. A server-side one-time
+  // nonce store is the hardening path if this ever matters.
   const expectedNonce = req.cookies.get(NONCE_COOKIE)?.value;
   if (!expectedNonce || payload.nonce !== expectedNonce) {
     return NextResponse.json({ error: "nonce_mismatch" }, { status: 401 });
@@ -65,8 +72,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing_user_id" }, { status: 401 });
   }
 
-  // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id)
-  // and establish a session (signed cookie). Clear the nonce cookie on success.
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret) {
+    return NextResponse.json({ error: "server_misconfigured" }, { status: 500 });
+  }
+
+  // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id).
   const user = {
     id: payload.id,
     name: payload.name ?? null,
@@ -75,6 +86,15 @@ export async function POST(req: NextRequest) {
   };
 
   const res = NextResponse.json({ ok: true, user });
-  res.cookies.delete(NONCE_COOKIE);
+  // Establish the session: signed, httpOnly, Secure, SameSite=Lax.
+  res.cookies.set(SESSION_COOKIE, createSessionToken(payload.id, sessionSecret), {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_TTL_SECONDS,
+  });
+  // Delete the one-time nonce with the same path it was set with.
+  res.cookies.delete({ name: NONCE_COOKIE, path: "/api/auth/telegram" });
   return res;
 }

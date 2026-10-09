@@ -59,43 +59,51 @@ export default function QuestionnairePage() {
   return (
     <main className="centered">
       <div className="card">
-        <div className="eyebrow">PairPeers</div>
-        <h1>The questionnaire</h1>
-        <p className="muted">
-          A short sample of the full thing. Your answers feed the matching engine —
-          hard dealbreakers are respected absolutely.
-        </p>
+        <div className="questionnaire-header">
+          <div className="eyebrow">PairPeers</div>
+          <h1>The questionnaire</h1>
+          <p className="muted">
+            A short sample of the full thing. Your answers feed the matching engine —
+            hard dealbreakers are respected absolutely.
+          </p>
+          <div className="progress-wrap" aria-label="Question 3 of 8">
+            <span>Question 3 of 8</span>
+            <div className="progress-bar" aria-hidden="true" />
+          </div>
+        </div>
         <form onSubmit={submit} className="form">
           {QUESTIONS.map((q) => (
-            <div key={q.key} className="field">
-              <span id={`${q.key}-label`}>{q.label}</span>
-              {q.type === "select" ? (
-                <div
-                  className="opt-grid"
-                  role="radiogroup"
-                  aria-labelledby={`${q.key}-label`}
-                >
-                  {q.options.map((o) => (
-                    <button
-                      key={o}
-                      type="button"
-                      className="opt"
-                      aria-pressed={answers[q.key] === o}
-                      onClick={() => set(q.key, o)}
-                    >
-                      {o.replace(/_/g, " ")}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  type={q.type}
-                  aria-label={q.label}
-                  value={answers[q.key] ?? ""}
-                  onChange={(e) => set(q.key, e.target.value)}
-                  required={q.key !== "note"}
-                />
-              )}
+            <div key={q.key} className="question-card">
+              <div className="field">
+                <span id={`${q.key}-label`}>{q.label}</span>
+                {q.type === "select" ? (
+                  <div
+                    className="opt-grid"
+                    role="radiogroup"
+                    aria-labelledby={`${q.key}-label`}
+                  >
+                    {q.options.map((o) => (
+                      <button
+                        key={o}
+                        type="button"
+                        className="opt"
+                        aria-pressed={answers[q.key] === o}
+                        onClick={() => set(q.key, o)}
+                      >
+                        {o.replace(/_/g, " ")}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <input
+                    type={q.type}
+                    aria-label={q.label}
+                    value={answers[q.key] ?? ""}
+                    onChange={(e) => set(q.key, e.target.value)}
+                    required={q.key !== "note"}
+                  />
+                )}
+              </div>
             </div>
           ))}
           <button type="submit" disabled={busy} className="btn">
