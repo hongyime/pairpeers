@@ -104,7 +104,7 @@ export default function TelegramLogin({
         error?: string;
       }>((resolve) => {
         window.Telegram!.Login.auth(
-          { client_id: Number(clientId), scope: ["profile", "write"], nonce },
+          { client_id: Number(clientId), scope: ["profile", "write", "phone"], nonce },
           (d) => resolve(d)
         );
       });
@@ -123,8 +123,15 @@ export default function TelegramLogin({
           error?: string;
           reason?: string;
         } | null;
+        const friendly: Record<string, string> = {
+          non_sg_phone:
+            "PairPeers is currently open to Singapore numbers only (+65).",
+        };
         throw new Error(
-          body?.reason ? `${body.error} (${body.reason})` : body?.error || "verification failed"
+          (body?.error && friendly[body.error]) ||
+            (body?.reason
+              ? `${body.error} (${body.reason})`
+              : body?.error || "verification failed")
         );
       }
 

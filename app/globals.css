@@ -39,7 +39,8 @@ a, button, input, select, .opt {
   -webkit-tap-highlight-color: transparent;
 }
 
-a { color: var(--primary); }
+a { color: var(--primary); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--primary); }
 button, input, select { font: inherit; }
 
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {

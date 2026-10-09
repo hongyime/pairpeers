@@ -12,6 +12,8 @@ const ERROR_COPY: Record<string, string> = {
   missing_id_token: "Telegram didn't return your profile. Please try again.",
   invalid_token: "Telegram's response couldn't be verified. Please try again.",
   db_error: "Couldn't save your profile. Please try again.",
+  non_sg_phone:
+    "PairPeers is currently open to Singapore numbers only (+65).",
 };
 
 function ErrorNoteInner() {

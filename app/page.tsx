@@ -57,10 +57,6 @@ export default function Home() {
             <h2>Thoughtful by design.</h2>
             <p>Explainable matching and explicit consent keep the experience human.</p>
           </div>
-          <figure className="vouch-card">
-            <blockquote>&ldquo;They make every room feel more like home. You&apos;ll know exactly what I mean after one conversation.&rdquo;</blockquote>
-            <figcaption>Samira · longtime friend</figcaption>
-          </figure>
           <div className="trust-grid">
             <article className="trust-card">
               <h3>The algorithm</h3>

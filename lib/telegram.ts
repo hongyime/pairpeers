@@ -15,6 +15,9 @@ export type TelegramIdToken = {
   preferred_username?: string;
   picture?: string;
   nonce?: string;
+  /** OIDC standard claim; present when the `phone` scope was granted. */
+  phone_number?: string;
+  phone_number_verified?: boolean;
 };
 
 /**

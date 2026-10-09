@@ -6,6 +6,7 @@ import {
 } from "@/lib/session";
 import { telegramUserSummary, verifyTelegramIdToken } from "@/lib/telegram";
 import { ensureProfile } from "@/lib/profiles";
+import { phoneGate } from "@/lib/phone";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { NONCE_COOKIE } from "./nonce/route";
 
@@ -78,10 +79,23 @@ export async function POST(req: NextRequest) {
   // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id).
   const user = telegramUserSummary(payload);
 
+  // SG-only pilot rule: a shared phone number must be Singaporean.
+  const gate = phoneGate(payload, (m) => console.warn(m));
+  if (!gate.ok) {
+    return clearNonce(
+      NextResponse.json({ error: gate.error }, { status: 401 })
+    );
+  }
+
   // One Telegram identity = one profile, forever (Sybil defense).
   try {
     const supabase = await createSupabaseServerClient();
-    await ensureProfile(supabase, payload.id, user.name ?? user.username);
+    await ensureProfile(
+      supabase,
+      payload.id,
+      user.name ?? user.username,
+      gate.phone
+    );
   } catch {
     return clearNonce(
       NextResponse.json({ error: "db_error" }, { status: 500 })

@@ -7,6 +7,7 @@ import {
 } from "@/lib/session";
 import { verifyTelegramIdToken, telegramUserSummary } from "@/lib/telegram";
 import { ensureProfile } from "@/lib/profiles";
+import { phoneGate } from "@/lib/phone";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import {
   REDIRECT_STATE_COOKIE,
@@ -122,10 +123,21 @@ export async function GET(req: NextRequest) {
   // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id).
   const user = telegramUserSummary(payload);
 
+  // SG-only pilot rule: a shared phone number must be Singaporean.
+  const gate = phoneGate(payload, (m) => console.warn(m));
+  if (!gate.ok) {
+    return fail(req, gate.error);
+  }
+
   // One Telegram identity = one profile, forever (Sybil defense).
   try {
     const supabase = await createSupabaseServerClient();
-    await ensureProfile(supabase, payload.id, user.name ?? user.username);
+    await ensureProfile(
+      supabase,
+      payload.id,
+      user.name ?? user.username,
+      gate.phone
+    );
   } catch {
     return fail(req, "db_error");
   }
