@@ -10,6 +10,7 @@ export type CycleAnswers = {
   smokes: string;
   kids: string;
   seeking: string;
+  age_bracket: string;
   age_min: string;
   age_max: string;
   green_flags: string[];
@@ -23,7 +24,6 @@ export type CycleAnswers = {
 export type CycleParticipant = {
   id: string;
   answers: CycleAnswers;
-  age?: number;
 };
 
 export type ScoredPair = {
@@ -94,17 +94,35 @@ function energyCompatible(preference: string, candidate: CycleAnswers, seeker: C
   return preference === "same" ? same : !same;
 }
 
-function ageCompatible(seeker: CycleParticipant, candidate: CycleParticipant): { ok: boolean; skipped: boolean } {
-  if (seeker.age === undefined || candidate.age === undefined) return { ok: true, skipped: true };
+/**
+ * Coarse age brackets keep exact age private while still allowing the
+ * age_min/age_max preference range to filter. Overlap (not containment)
+ * is the rule: a 25–29 candidate overlaps a seeker wanting 21–40.
+ */
+const AGE_BRACKETS: Record<string, [number, number]> = {
+  age_18_24: [18, 24],
+  age_25_29: [25, 29],
+  age_30_34: [30, 34],
+  age_35_39: [35, 39],
+  age_40_plus: [40, 120],
+};
+
+function ageCompatible(
+  seeker: CycleParticipant,
+  candidate: CycleParticipant
+): { ok: boolean; skipped: boolean } {
+  const bracket = AGE_BRACKETS[candidate.answers.age_bracket];
+  if (!bracket) return { ok: true, skipped: true };
   const min = Number(seeker.answers.age_min);
   const max = Number(seeker.answers.age_max);
-  return { ok: candidate.age >= min && candidate.age <= max, skipped: false };
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return { ok: true, skipped: true };
+  const [lo, hi] = bracket;
+  return { ok: lo <= max && hi >= min, skipped: false };
 }
 
 /**
- * Track B must-haves are hard filters. The questionnaire currently has no
- * corresponding age field on profiles, so age is checked only when callers
- * provide it and otherwise explicitly reported as skipped.
+ * Track B must-haves are hard filters. Age uses coarse brackets (privacy):
+ * the candidate's bracket must overlap the seeker's preferred range.
  */
 export function passesHardFilters(a: CycleParticipant, b: CycleParticipant): { ok: boolean; ageSkipped: boolean; reasons: string[] } {
   const age = ageCompatible(a, b);

@@ -14,11 +14,15 @@ type Audit = {
   algorithm_path?: string;
   unmatched_member_ids?: string[];
   age_filter_skipped_member_ids?: string[];
+  notifications?: Record<string, "sent" | "failed">;
   timestamp?: string;
 };
 
 function summary(audit: Audit | null | undefined) {
   const pairs = audit?.pairs ?? [];
+  const notifications = audit?.notifications ?? {};
+  const notified = Object.values(notifications).filter((s) => s === "sent").length;
+  const failed = Object.values(notifications).filter((s) => s === "failed").length;
   return {
     cycle_id: undefined,
     pool_size: audit?.pool_size ?? 0,
@@ -28,6 +32,8 @@ function summary(audit: Audit | null | undefined) {
     unmatched_count: audit?.unmatched_member_ids?.length ?? 0,
     algorithm: audit?.algorithm_path ?? null,
     excluded_counts: audit?.excluded_counts ?? {},
+    notifications_sent: notified,
+    notifications_failed: failed,
   };
 }
 
@@ -78,6 +84,11 @@ export async function POST(req: NextRequest) {
       .is("closed_at", null);
     if (error) return NextResponse.json({ error: "db_error" }, { status: 500 });
     return responseForCycle(open.data.id, (open.data.audit ?? {}) as Audit);
+  }
+
+  if (action === "renotify") {
+    if (!open.data) return NextResponse.json({ error: "no_open_cycle" }, { status: 404 });
+    return renotify(supabase, open.data.id, (open.data.audit ?? {}) as Audit);
   }
 
   if (open.data) return responseForCycle(open.data.id, (open.data.audit ?? {}) as Audit);
@@ -167,15 +178,56 @@ export async function POST(req: NextRequest) {
   }
 
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://pairpeers.hong-yi.me").replace(/\/$/, "");
-  try {
-    for (const pair of result.pairs) {
-      const text = `You have a new introduction waiting in PairPeers. You have 72 hours to opt in mutually. View it here: ${baseUrl}/matches`;
-      await sendTelegramMessage(telegramById.get(pair.aId)! as number, text);
-      await sendTelegramMessage(telegramById.get(pair.bId)! as number, text);
+  const notifications: Record<string, "sent" | "failed"> = {};
+  const notifyText = `You have a new introduction waiting in PairPeers. You have 72 hours to opt in mutually. View it here: ${baseUrl}/matches`;
+  for (const pair of result.pairs) {
+    for (const memberId of [pair.aId, pair.bId]) {
+      const telegramId = telegramById.get(memberId);
+      if (!telegramId) {
+        notifications[memberId] = "failed";
+        continue;
+      }
+      try {
+        await sendTelegramMessage(telegramId, notifyText);
+        notifications[memberId] = "sent";
+      } catch {
+        notifications[memberId] = "failed";
+      }
     }
-  } catch {
-    return NextResponse.json({ error: "notification_failed", ...summary(audit), cycle_id: cycle.id }, { status: 502 });
   }
+  audit.notifications = notifications;
+  await supabase.from("match_cycles").update({ audit }).eq("id", cycle.id);
 
   return responseForCycle(cycle.id, audit);
+}
+
+async function renotify(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  cycleId: string,
+  audit: Audit
+) {
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://pairpeers.hong-yi.me").replace(/\/$/, "");
+  const { data: profiles } = await supabase.from("profiles").select("id, telegram_id");
+  const telegramById = new Map((profiles ?? []).map((p) => [p.id, Number(p.telegram_id)]));
+  const notifications = { ...(audit.notifications ?? {}) };
+  const notifyText = `You have a new introduction waiting in PairPeers. You have 72 hours to opt in mutually. View it here: ${baseUrl}/matches`;
+  for (const pair of audit.pairs ?? []) {
+    for (const memberId of [pair.a_id, pair.b_id]) {
+      if (notifications[memberId] === "sent") continue;
+      const telegramId = telegramById.get(memberId);
+      if (!telegramId) {
+        notifications[memberId] = "failed";
+        continue;
+      }
+      try {
+        await sendTelegramMessage(telegramId, notifyText);
+        notifications[memberId] = "sent";
+      } catch {
+        notifications[memberId] = "failed";
+      }
+    }
+  }
+  const updated: Audit = { ...audit, notifications };
+  await supabase.from("match_cycles").update({ audit: updated }).eq("id", cycleId);
+  return NextResponse.json({ ...summary(updated), cycle_id: cycleId });
 }

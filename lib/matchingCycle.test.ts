@@ -12,6 +12,7 @@ const answers = (overrides: Partial<CycleAnswers> = {}): CycleAnswers => ({
   smokes: "no",
   kids: "open",
   seeking: "everyone",
+  age_bracket: "age_25_29",
   age_min: "21",
   age_max: "40",
   green_flags: ["kindness"],
@@ -39,6 +40,22 @@ test("must-have smoking preference excludes an otherwise eligible pair", () => {
   const result = runCycle([a, b]);
   assert.equal(result.pairs.length, 0);
   assert.deepEqual(result.unmatched, ["a", "b"]);
+});
+
+test("age bracket outside the seeker's range excludes the pair", () => {
+  const a = person("a", { age_min: "21", age_max: "25" });
+  const b = person("b", { age_bracket: "age_35_39" });
+  const result = runCycle([a, b]);
+  assert.equal(result.pairs.length, 0);
+  assert.deepEqual(result.unmatched, ["a", "b"]);
+});
+
+test("overlapping age bracket keeps the pair eligible", () => {
+  const a = person("a", { age_min: "21", age_max: "40" });
+  const b = person("b", { age_bracket: "age_35_39" });
+  const result = runCycle([a, b]);
+  assert.equal(result.pairs.length, 1);
+  assert.equal(result.ageFilterSkippedMemberIds.length, 0);
 });
 
 test("Irving returns reciprocal pairs for a stable roommate pool", () => {

@@ -41,7 +41,8 @@ const single = (
   track: "about" | "want",
   label: string,
   options: Array<[string, string]>,
-  required = true
+  required = true,
+  hint?: string
 ): QuestionDef => ({
   key,
   track,
@@ -49,6 +50,7 @@ const single = (
   kind: "single",
   options: options.map(([value, label]) => ({ value, label })),
   required,
+  hint,
 });
 
 const multi = (
@@ -79,6 +81,13 @@ export const QUESTIONS: QuestionDef[] = [
     ["nonbinary", "Non-binary"],
     ["prefer_not", "Prefer not to say"],
   ]),
+  single("age_bracket", "about", "Your age bracket", [
+    ["age_18_24", "18–24"],
+    ["age_25_29", "25–29"],
+    ["age_30_34", "30–34"],
+    ["age_35_39", "35–39"],
+    ["age_40_plus", "40+"],
+  ], true, "Brackets keep it private — exact age stays yours"),
   multi(
     "interests",
     "about",
