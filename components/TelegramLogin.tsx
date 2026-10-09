@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -26,6 +26,22 @@ declare global {
 
 const LIB_URL = "https://oauth.telegram.org/js/telegram-login.js";
 
+/** In-app browsers (Telegram/IG/TikTok/…) and iOS standalone PWAs where popups are unreliable. */
+function isInAppBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (
+    /Telegram|Instagram|FBAN|FBAV|Line\/|MicroMessenger|Twitter|Snapchat|TikTok|Pinterest|Reddit/i.test(
+      ua
+    )
+  ) {
+    return true;
+  }
+  return (
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
 function loadLibrary(): Promise<void> {
   if (window.Telegram?.Login) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -46,6 +62,9 @@ function loadLibrary(): Promise<void> {
  * deprecated and cannot be restyled. The popup returns a signed id_token JWT,
  * which we POST to /api/auth/telegram for server-side verification.
  *
+ * In in-app browsers / installed PWAs the popup is unreliable, so those
+ * users get the redirect flow (plain navigation) as the primary path.
+ *
  * NOTE: the popup flow breaks if the site serves
  * `Cross-Origin-Opener-Policy: same-origin`; use
  * `same-origin-allow-popups` or omit the header.
@@ -58,7 +77,14 @@ export default function TelegramLogin({
   const clientId = process.env.NEXT_PUBLIC_TELEGRAM_CLIENT_ID;
   const [status, setStatus] = useState<"idle" | "busy" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [inApp, setInApp] = useState(false);
   const busyRef = useRef(false);
+
+  useEffect(() => {
+    setInApp(isInAppBrowser());
+  }, []);
+
+  const redirectHref = `/api/auth/telegram/redirect?next=${encodeURIComponent(redirectTo)}`;
 
   const login = useCallback(async () => {
     if (busyRef.current || !clientId) return;
@@ -95,8 +121,11 @@ export default function TelegramLogin({
       if (!verifyRes.ok) {
         const body = (await verifyRes.json().catch(() => null)) as {
           error?: string;
+          reason?: string;
         } | null;
-        throw new Error(body?.error || "verification failed");
+        throw new Error(
+          body?.reason ? `${body.error} (${body.reason})` : body?.error || "verification failed"
+        );
       }
 
       window.location.href = redirectTo;
@@ -113,6 +142,27 @@ export default function TelegramLogin({
         Telegram login is not configured yet. Set{" "}
         <code>NEXT_PUBLIC_TELEGRAM_CLIENT_ID</code> in your environment.
       </p>
+    );
+  }
+
+  // In-app browsers / installed PWAs: popups are unreliable — redirect first.
+  if (inApp) {
+    return (
+      <div>
+        <a className="btn" href={redirectHref}>
+          Continue with Telegram
+        </a>
+        <p className="muted small">
+          <button type="button" className="link-btn" onClick={login}>
+            Try the popup instead
+          </button>
+        </p>
+        {status === "error" && error && (
+          <p className="status" role="alert">
+            Login failed: {error}
+          </p>
+        )}
+      </div>
     );
   }
 

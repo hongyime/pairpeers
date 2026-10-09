@@ -57,9 +57,14 @@ export async function POST(req: NextRequest) {
   let payload;
   try {
     payload = await verifyTelegramIdToken(idToken, clientId, expectedNonce);
-  } catch {
+  } catch (e) {
+    // Temporary diagnostic: surface the exact jose failure so real-world
+    // login issues (popup vs in-app browsers) can be root-caused.
+    const reason =
+      e instanceof Error ? `${e.name}: ${e.message}` : "unknown_error";
+    console.error(`[auth] popup id_token verification failed: ${reason}`);
     return clearNonce(
-      NextResponse.json({ error: "invalid_token" }, { status: 401 })
+      NextResponse.json({ error: "invalid_token", reason }, { status: 401 })
     );
   }
 
