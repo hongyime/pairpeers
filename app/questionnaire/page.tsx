@@ -31,6 +31,14 @@ export default function QuestionnairePage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Option-chip questions aren't native form controls, so validate manually.
+    const missing = QUESTIONS.filter(
+      (q) => q.key !== "note" && !answers[q.key]
+    );
+    if (missing.length > 0) {
+      setStatus(`Please answer: ${missing.map((q) => q.label).join("; ")}`);
+      return;
+    }
     setBusy(true);
     setStatus(null);
     try {
@@ -59,24 +67,36 @@ export default function QuestionnairePage() {
         </p>
         <form onSubmit={submit} className="form">
           {QUESTIONS.map((q) => (
-            <label key={q.key} className="field">
-              <span>{q.label}</span>
+            <div key={q.key} className="field">
+              <span id={`${q.key}-label`}>{q.label}</span>
               {q.type === "select" ? (
-                <select value={answers[q.key] ?? ""} onChange={(e) => set(q.key, e.target.value)} required>
-                  <option value="" disabled>Choose…</option>
+                <div
+                  className="opt-grid"
+                  role="radiogroup"
+                  aria-labelledby={`${q.key}-label`}
+                >
                   {q.options.map((o) => (
-                    <option key={o} value={o}>{o.replace(/_/g, " ")}</option>
+                    <button
+                      key={o}
+                      type="button"
+                      className="opt"
+                      aria-pressed={answers[q.key] === o}
+                      onClick={() => set(q.key, o)}
+                    >
+                      {o.replace(/_/g, " ")}
+                    </button>
                   ))}
-                </select>
+                </div>
               ) : (
                 <input
                   type={q.type}
+                  aria-label={q.label}
                   value={answers[q.key] ?? ""}
                   onChange={(e) => set(q.key, e.target.value)}
                   required={q.key !== "note"}
                 />
               )}
-            </label>
+            </div>
           ))}
           <button type="submit" disabled={busy} className="btn">
             {busy ? "Saving…" : "Submit answers"}
