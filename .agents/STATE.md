@@ -23,3 +23,14 @@
 1. Owner: set Framework Preset → Next.js in Vercel project settings.
 2. Owner: BotFather `/setdomain` → production domain for `@pairpeersbot`.
 3. Tighten RLS per migration TODOs before real users (see README roadmap).
+
+## 2026-10-09 16:11 JST - redirect flow + Antigravity review fixes + final tagline
+- OIDC redirect flow (auth code + PKCE) shipped: /api/auth/telegram/redirect,
+  /api/auth/telegram/callback; TELEGRAM_CLIENT_SECRET (sensitive) and
+  NEXT_PUBLIC_APP_URL stored in Vercel; BotFather redirect URIs registered by Bryan.
+- Antigravity (agy) OAuth self-recovered; full auth security review completed:
+  8 findings (2 medium, 3 low, 3 info), ALL fixed and deployed in 0d380b6.
+- Tagline finalized by Bryan: "Vouched, not swiped. Invite only dating through
+  friends who know you best." Applied to hero, metadata, manifest, bot profile.
+- Bot profile picture set by Bryan via /setuserpic.
+- NEXT: invite system, blocked on Bryan's 10 business decisions (roadmap Track A).
