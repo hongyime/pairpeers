@@ -154,6 +154,9 @@ p { font-size: 17px; line-height: 1.65; }
 .closing { padding-bottom: var(--section-desktop); text-align: center; }
 .closing .section-heading { margin: 0 auto; }
 .closing .actions { justify-content: center; }
+.site-footer { padding: 36px 0 44px; border-top: 1px solid var(--line); }
+.site-footer .page-shell { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.footer-brand { color: var(--primary); font-family: var(--font-alice), var(--font-display); font-size: 1.25rem; }
 
 .centered {
   min-height: 100vh;

@@ -83,6 +83,13 @@ export default function Home() {
           <div className="actions"><Link href="/login" className="btn">Sign in with Telegram</Link></div>
         </div>
       </section>
+
+      <footer className="site-footer">
+        <div className="page-shell">
+          <span className="footer-brand">PairPeers</span>
+          <span className="muted small">© 2026 · Vouched, not swiped.</span>
+        </div>
+      </footer>
     </main>
   );
 }
