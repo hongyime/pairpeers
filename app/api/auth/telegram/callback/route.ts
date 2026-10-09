@@ -130,12 +130,14 @@ export async function GET(req: NextRequest) {
   }
 
   // One Telegram identity = one profile, forever (Sybil defense).
+  // Telegram is the source of truth: changed names/usernames/phones refresh here.
   try {
     const supabase = await createSupabaseServerClient();
     await ensureProfile(
       supabase,
       payload.id,
       user.name ?? user.username,
+      payload.preferred_username ?? null,
       gate.phone
     );
   } catch {
