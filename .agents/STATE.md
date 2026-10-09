@@ -34,3 +34,14 @@
   friends who know you best." Applied to hero, metadata, manifest, bot profile.
 - Bot profile picture set by Bryan via /setuserpic.
 - NEXT: invite system, blocked on Bryan's 10 business decisions (roadmap Track A).
+
+## 2026-10-09 16:40 JST - migration 0002 applied + invite system live
+- Bryan supplied the DB password transiently (used once via HTTP CONNECT
+  tunnel, never stored). Migration 0002 applied and verified: new columns,
+  redemptions table, redeem_invite() function all live.
+- Redemption paths tested at DB level: success (uses/vouch/audit/member all
+  set), double-redeem rejected, self-redeem rejected, expired rejected.
+  Test rows cleaned up.
+- Invite system is LIVE: /invites (create), /invite/[code] (preview+claim).
+- Bryan's remaining: first login, then founder SQL (is_member/is_founder).
+- IDOR question answered: preview is an intentional capability URL, not IDOR.
