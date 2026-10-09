@@ -11,7 +11,7 @@ export default function AdminPage() {
         <main className="centered">
           <div className="card">
             <div className="eyebrow">Admin</div>
-            <h1>Bot webhook</h1>
+            <h1>Bot status</h1>
             <p className="muted">Loading…</p>
           </div>
         </main>

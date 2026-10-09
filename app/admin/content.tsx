@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import { getProfileByTelegramId } from "@/lib/profiles";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { WebhookControls } from "./controls";
+import { StatusChecks } from "./controls";
 
 /** Founder-only admin content: reads the session, so it renders dynamically. */
 export async function AdminContent() {
@@ -24,12 +24,11 @@ export async function AdminContent() {
     <main className="centered">
       <div className="card">
         <div className="eyebrow">Admin</div>
-        <h1>Bot webhook</h1>
+        <h1>Bot status</h1>
         <p className="muted">
-          Register @pairpeersbot&apos;s webhook or check its current status.
-          Founder-only.
+          Read-only health checks for @pairpeersbot. Founder-only.
         </p>
-        <WebhookControls />
+        <StatusChecks />
       </div>
     </main>
   );

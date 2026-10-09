@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 
-export function WebhookControls() {
+export function StatusChecks() {
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function call(action: "set" | "info" | "menu_button") {
+  async function call(action: "info" | "menu_button") {
     setBusy(true);
     setResult(null);
     try {
@@ -26,25 +26,18 @@ export function WebhookControls() {
     <div className="stack">
       <div className="row">
         <button
-          className="btn"
-          disabled={busy}
-          onClick={() => call("set")}
-        >
-          Register webhook
-        </button>
-        <button
           className="btn secondary"
           disabled={busy}
           onClick={() => call("info")}
         >
-          Check status
+          Webhook status
         </button>
         <button
           className="btn secondary"
           disabled={busy}
           onClick={() => call("menu_button")}
         >
-          Check menu button
+          Menu button
         </button>
       </div>
       {result && <pre className="result">{result}</pre>}
