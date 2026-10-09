@@ -104,7 +104,7 @@ export default function TelegramLogin({
         error?: string;
       }>((resolve) => {
         window.Telegram!.Login.auth(
-          { client_id: Number(clientId), scope: ["profile"], nonce },
+          { client_id: Number(clientId), scope: ["profile", "write"], nonce },
           (d) => resolve(d)
         );
       });
