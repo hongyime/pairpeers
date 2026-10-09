@@ -27,7 +27,7 @@ algorithm. No infinite scroll.
    and set its domain to your deployment URL. Note the bot **username**
    (public) and **token** (secret).
 
-3. **Environment** — copy `.env.sample` to `.env.local` and fill in:
+3. **Environment** — copy `.env.example` to `.env.local` and fill in:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_TELEGRAM_BOT_NAME` (bot username, no `@`)
    - `TELEGRAM_BOT_TOKEN` (server-side only)
