@@ -204,7 +204,6 @@ export default function QuestionnairePage() {
   return (
     <main className="centered">
       <div className="card">
-        <div className="eyebrow">PairPeers</div>
         <h1>The questionnaire</h1>
         <p className="muted">
           Two short tracks. Everything is tap-to-answer. Hard dealbreakers are

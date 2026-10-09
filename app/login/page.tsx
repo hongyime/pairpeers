@@ -6,7 +6,6 @@ export default function LoginPage() {
   return (
     <main className="centered">
       <div className="card narrow login-card">
-        <div className="eyebrow">PairPeers</div>
         <h1>Sign in</h1>
         <LoginErrorNote />
         <div className="widget-wrap">
