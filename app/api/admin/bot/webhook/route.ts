@@ -37,7 +37,12 @@ export async function POST(req: NextRequest) {
   }
 
   const action = req.nextUrl.searchParams.get("action") ?? "set";
-  const method = action === "info" ? "getWebhookInfo" : "setWebhook";
+  const method =
+    action === "info"
+      ? "getWebhookInfo"
+      : action === "menu_button"
+        ? "getChatMenuButton"
+        : "setWebhook";
 
   const params: Record<string, string> = {};
   if (method === "setWebhook") {
