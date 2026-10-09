@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CreateInviteForm from "./create-form";
+import InviteRow from "./invite-row";
 import { INVITES_PER_USER } from "@/lib/inviteConstants";
 import { listMyInvites } from "@/lib/invites";
 import { getProfileByTelegramId } from "@/lib/profiles";
@@ -63,27 +64,9 @@ export async function InvitesDashboard() {
           <>
             <h2>Your invites</h2>
             <ul className="invite-list">
-              {invites.map((inv) => {
-                const expired = new Date(inv.expires_at) <= new Date();
-                const used = inv.uses >= inv.max_uses;
-                const status = used ? "claimed" : expired ? "expired" : "active";
-                return (
-                  <li key={inv.code} className={`invite-row invite-${status}`}>
-                    <code>{inv.code}</code>
-                    <span className="muted small">{status}</span>
-                    {!used && !expired && (
-                      <a
-                        href={`${baseUrl}/invite/${inv.code}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="muted small"
-                      >
-                        open link
-                      </a>
-                    )}
-                  </li>
-                );
-              })}
+              {invites.map((inv) => (
+                <InviteRow key={inv.code} invite={inv} baseUrl={baseUrl} />
+              ))}
             </ul>
           </>
         )}
