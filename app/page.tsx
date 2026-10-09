@@ -15,7 +15,6 @@ export default function Home() {
           </p>
           <div className="actions">
             <Link href="/login" className="btn">Sign in with Telegram</Link>
-            <a href="#how-it-works" className="btn secondary">How it works</a>
           </div>
           <p className="status-line">Now onboarding for the pilot.</p>
         </div>
