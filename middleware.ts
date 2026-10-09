@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 export const config = {
-  matcher: ["/questionnaire/:path*", "/api/questionnaire/:path*"],
+  matcher: ["/questionnaire/:path*", "/api/questionnaire/:path*", "/invites/:path*", "/api/invites/:path*"],
 };
 
 /**

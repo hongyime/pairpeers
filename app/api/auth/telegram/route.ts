@@ -5,6 +5,8 @@ import {
   createSessionToken,
 } from "@/lib/session";
 import { telegramUserSummary, verifyTelegramIdToken } from "@/lib/telegram";
+import { ensureProfile } from "@/lib/profiles";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { NONCE_COOKIE } from "./nonce/route";
 
 const NONCE_COOKIE_PATH = "/api/auth/telegram";
@@ -70,6 +72,16 @@ export async function POST(req: NextRequest) {
 
   // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id).
   const user = telegramUserSummary(payload);
+
+  // One Telegram identity = one profile, forever (Sybil defense).
+  try {
+    const supabase = await createSupabaseServerClient();
+    await ensureProfile(supabase, payload.id, user.name ?? user.username);
+  } catch {
+    return clearNonce(
+      NextResponse.json({ error: "db_error" }, { status: 500 })
+    );
+  }
 
   const res = NextResponse.json({ ok: true, user });
   // Establish the session: signed, httpOnly, Secure, SameSite=Lax.

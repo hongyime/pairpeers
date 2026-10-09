@@ -3,7 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const REDIRECT_STATE_COOKIE = "pp_tg_oauth_state";
 export const REDIRECT_VERIFIER_COOKIE = "pp_tg_oauth_verifier";
+export const OAUTH_NEXT_COOKIE = "pp_tg_oauth_next";
 const OAUTH_TTL_SECONDS = 5 * 60;
+
+/**
+ * Same-origin path guard for post-login redirects (open-redirect defense).
+ * Must start with a single "/" — never "//" (protocol-relative) or a scheme.
+ */
+export function isValidNextPath(v: string | null | undefined): v is string {
+  return !!v && v.startsWith("/") && !v.startsWith("//") && !v.includes("://");
+}
 
 /**
  * Starts the Telegram OIDC redirect flow (authorization code + PKCE).
@@ -51,5 +60,13 @@ export async function GET(req: NextRequest) {
   } as const;
   res.cookies.set(REDIRECT_STATE_COOKIE, state, cookieOpts);
   res.cookies.set(REDIRECT_VERIFIER_COOKIE, verifier, cookieOpts);
+  // Optional post-login destination (e.g. back to an invite page).
+  const nextPath = req.nextUrl.searchParams.get("next");
+  if (isValidNextPath(nextPath)) {
+    res.cookies.set(OAUTH_NEXT_COOKIE, nextPath, {
+      ...cookieOpts,
+      path: "/",
+    });
+  }
   return res;
 }

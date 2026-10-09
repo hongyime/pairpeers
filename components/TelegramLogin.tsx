@@ -50,7 +50,11 @@ function loadLibrary(): Promise<void> {
  * `Cross-Origin-Opener-Policy: same-origin`; use
  * `same-origin-allow-popups` or omit the header.
  */
-export default function TelegramLogin() {
+export default function TelegramLogin({
+  redirectTo = "/questionnaire",
+}: {
+  redirectTo?: string;
+}) {
   const clientId = process.env.NEXT_PUBLIC_TELEGRAM_CLIENT_ID;
   const [status, setStatus] = useState<"idle" | "busy" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -95,13 +99,13 @@ export default function TelegramLogin() {
         throw new Error(body?.error || "verification failed");
       }
 
-      window.location.href = "/questionnaire";
+      window.location.href = redirectTo;
     } catch (err) {
       setError(err instanceof Error ? err.message : "login failed");
       setStatus("error");
       busyRef.current = false;
     }
-  }, [clientId]);
+  }, [clientId, redirectTo]);
 
   if (!clientId) {
     return (

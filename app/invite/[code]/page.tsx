@@ -1,15 +1,22 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { QuestionnaireGate } from "./gate";
+import { InviteContent } from "./content";
 
-/** Shell prerenders statically; the membership gate reads the session (dynamic). */
-export default function QuestionnairePage() {
+/**
+ * Fully static shell; all runtime data (params, cookies, DB) resolves
+ * inside the Suspense boundary.
+ */
+export default function InvitePage({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
   return (
     <Suspense
       fallback={
         <main className="centered">
           <div className="card narrow">
-            <div className="eyebrow">Questionnaire</div>
+            <div className="eyebrow">Invite</div>
             <h1>Loading…</h1>
             <p className="muted small">
               <Link href="/">← Back home</Link>
@@ -18,7 +25,7 @@ export default function QuestionnairePage() {
         </main>
       }
     >
-      <QuestionnaireGate />
+      <InviteContent params={params} />
     </Suspense>
   );
 }

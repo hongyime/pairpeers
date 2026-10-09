@@ -11,6 +11,7 @@ const ERROR_COPY: Record<string, string> = {
     "Couldn't complete the Telegram handshake. Please try again.",
   missing_id_token: "Telegram didn't return your profile. Please try again.",
   invalid_token: "Telegram's response couldn't be verified. Please try again.",
+  db_error: "Couldn't save your profile. Please try again.",
 };
 
 function ErrorNoteInner() {

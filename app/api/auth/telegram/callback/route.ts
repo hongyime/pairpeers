@@ -5,10 +5,14 @@ import {
   SESSION_TTL_SECONDS,
   createSessionToken,
 } from "@/lib/session";
-import { verifyTelegramIdToken } from "@/lib/telegram";
+import { verifyTelegramIdToken, telegramUserSummary } from "@/lib/telegram";
+import { ensureProfile } from "@/lib/profiles";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import {
   REDIRECT_STATE_COOKIE,
   REDIRECT_VERIFIER_COOKIE,
+  OAUTH_NEXT_COOKIE,
+  isValidNextPath,
 } from "../redirect/route";
 
 const TOKEN_URL = "https://oauth.telegram.org/token";
@@ -17,6 +21,7 @@ const COOKIE_PATH = "/api/auth/telegram";
 function clearOAuthCookies(res: NextResponse): void {
   res.cookies.delete({ name: REDIRECT_STATE_COOKIE, path: COOKIE_PATH });
   res.cookies.delete({ name: REDIRECT_VERIFIER_COOKIE, path: COOKIE_PATH });
+  res.cookies.delete({ name: OAUTH_NEXT_COOKIE, path: "/" });
 }
 
 function fail(req: NextRequest, error: string): NextResponse {
@@ -115,9 +120,19 @@ export async function GET(req: NextRequest) {
   }
 
   // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id).
+  const user = telegramUserSummary(payload);
+
+  // One Telegram identity = one profile, forever (Sybil defense).
+  try {
+    const supabase = await createSupabaseServerClient();
+    await ensureProfile(supabase, payload.id, user.name ?? user.username);
+  } catch {
+    return fail(req, "db_error");
+  }
 
   const done = req.nextUrl.clone();
-  done.pathname = "/questionnaire";
+  const nextPath = req.cookies.get(OAUTH_NEXT_COOKIE)?.value;
+  done.pathname = isValidNextPath(nextPath) ? nextPath : "/questionnaire";
   done.search = "";
   const res = NextResponse.redirect(done);
   res.cookies.set(

@@ -1,6 +1,8 @@
 import { mkdir, appendFile } from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
+import { getProfileByTelegramId } from "@/lib/profiles";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 /**
  * STUB: accepts questionnaire answers and appends them to a local JSONL file.
@@ -20,6 +22,17 @@ export async function POST(req: NextRequest) {
       : null;
   if (!session) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
+  // Members-only: the invite gate — only redeemed profiles may answer.
+  try {
+    const supabase = await createSupabaseServerClient();
+    const profile = await getProfileByTelegramId(supabase, session.telegramId);
+    if (!profile?.is_member) {
+      return NextResponse.json({ error: "not_member" }, { status: 403 });
+    }
+  } catch {
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
   let body: unknown;

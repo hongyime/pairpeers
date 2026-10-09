@@ -220,3 +220,13 @@ p { font-size: 17px; line-height: 1.65; }
   html { scroll-behavior: auto; }
   .btn, .opt { transition: none; }
 }
+
+/* Invite flow */
+.invite-vouch { font-family: var(--font-display); font-size: 1.35rem; line-height: 1.4; color: var(--primary); margin: 18px 0; padding-left: 16px; border-left: 3px solid var(--secondary); }
+.invite-list { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 10px; }
+.invite-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.invite-row code { font-weight: 700; letter-spacing: 0.04em; }
+.invite-claimed { opacity: 0.55; }
+.invite-expired { opacity: 0.55; }
+textarea { width: 100%; min-height: 110px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-size: 16px; font-family: inherit; resize: vertical; }
+label { display: block; font-weight: 600; margin: 14px 0 8px; }
