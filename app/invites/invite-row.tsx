@@ -3,7 +3,7 @@
 import { useState } from "react";
 import QRCode from "react-qr-code";
 
-type Invite = {
+export type Invite = {
   code: string;
   vouch_text: string | null;
   expires_at: string;
@@ -16,9 +16,11 @@ type Invite = {
 export default function InviteRow({
   invite,
   baseUrl,
+  onAction,
 }: {
   invite: Invite;
   baseUrl: string;
+  onAction?: () => void;
 }) {
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -45,13 +47,13 @@ export default function InviteRow({
       </div>
       {!used && !expired && (
         <div className="invite-actions">
-          <button type="button" className="chip-btn" onClick={copy}>
+          <button type="button" className="chip-btn" onClick={() => { onAction?.(); void copy(); }}>
             {copied ? "Copied ✓" : "Copy link"}
           </button>
           <button
             type="button"
             className="chip-btn"
-            onClick={() => setShowQr((v) => !v)}
+            onClick={() => { onAction?.(); setShowQr((v) => !v); }}
             aria-expanded={showQr}
           >
             {showQr ? "Hide QR" : "Show QR"}

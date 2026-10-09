@@ -7,7 +7,7 @@ import { VOUCH_MIN_LEN, VOUCH_MAX_LEN } from "@/lib/inviteConstants";
  * Invite creation form: the vouch is written atomically with the invite —
  * no vouch text, no invite. Shows the fresh code + shareable link on success.
  */
-export default function CreateInviteForm({ invitesLeft }: { invitesLeft: number }) {
+export default function CreateInviteForm({ invitesLeft, onCreated }: { invitesLeft: number; onCreated?: () => void }) {
   const [vouch, setVouch] = useState("");
   const [status, setStatus] = useState<"idle" | "busy" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,8 @@ export default function CreateInviteForm({ invitesLeft }: { invitesLeft: number 
       setCreated({ code: body.code!, link: body.link! });
       setVouch("");
       setStatus("done");
-      window.location.reload();
+      if (onCreated) onCreated();
+      else window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't create the invite.");
       setStatus("error");

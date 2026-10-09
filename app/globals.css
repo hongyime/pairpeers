@@ -197,6 +197,11 @@ p { font-size: 17px; line-height: 1.65; }
 .form > .btn { align-self: flex-start; }
 .status { margin-top: 16px; color: var(--primary); font-size: 14px; word-break: break-word; }
 
+.tma-page { --tma-bg: var(--page-bg); --tma-text: var(--body); --tma-button: var(--primary); --tma-button-text: #fff; background: var(--tma-bg); color: var(--tma-text); }
+.tma-page .login-card, .tma-page .invite-card, .tma-page textarea, .tma-page .opt, .tma-page .chip-btn { background: var(--tma-secondary-bg, var(--card-bg)); color: var(--tma-text, var(--body)); }
+.tma-page .btn { background: var(--tma-button, var(--cta)); color: var(--tma-button-text, #fff); }
+.tma-page .btn.secondary { color: var(--tma-button, var(--primary)); border-color: var(--tma-button, var(--primary)); background: transparent; }
+
 @media (max-width: 800px) {
   .steps { grid-template-columns: repeat(2, 1fr); }
   .trust-grid { grid-template-columns: 1fr; }
