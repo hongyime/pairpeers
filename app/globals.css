@@ -258,6 +258,86 @@ label { display: block; font-weight: 600; margin: 14px 0 8px; }
 .result { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
 
 /* Matches */
-.match-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.match-row { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-.match-row p { margin: 6px 0 0; }
+.match-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.match-card {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+.match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.match-status-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.match-rationale {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--tint-pink);
+  border: 1px solid rgba(131, 40, 72, 0.12);
+}
+.rationale-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rationale-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--primary);
+}
+.rationale-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.match-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.match-contact {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--tint-blue);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.match-safety {
+  font-size: 13px;
+  color: var(--body);
+  line-height: 1.5;
+}
+.feedback-box {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.feedback-options {
+  display: flex;
+  gap: 8px;
+}
+

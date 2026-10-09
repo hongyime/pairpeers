@@ -50,10 +50,19 @@
 - Bryan supplied service_role JWT + sb_secret + anon JWT in chat (used
   transiently, never stored). Added SUPABASE_SERVICE_ROLE_KEY and
   SUPABASE_SECRET_KEY (sensitive) to Vercel; left NEXT_PUBLIC_SUPABASE_ANON_KEY
-  on the working new-format publishable key (legacy JWT he pasted may be
-  revoked — not touching a working key).
 - Redeployed (89a6751 READY), then applied migration 0003: pilot_open_all
   policies dropped, zero policies remain.
 - Verified: anon role sees 0 rows on all tables, INSERT denied; app works via
   service_role (invite preview returns invalid_code, not db_error).
 - NOTE: secrets were pasted in chat history — flag rotation hygiene to Bryan.
+
+## 2026-10-10 - functional gaps implementation (Antigravity)
+- Branch `agy/functional-gaps` completed and verified.
+- Delivered:
+  1. Gap 1: Match opt-in UX (accept/decline endpoints, state machine `lib/matchOptIn.ts`, unit tests, notifications via `lib/botNotify.ts`, migration 0007).
+  2. Gap 2: Expiry sweep (`POST /api/admin/match/run?action=sweep` 72h window, cycle audit recording, silent expiry without duplicate sweeps).
+  3. Gap 3: Post-acceptance loop (`POST /api/matches/[id]/feedback`, migration 0008, 7d/14d Telegram nudges in sweep tracked in `match_nudges`).
+  4. Gap 4: Match rationale generator (`lib/matchRationale.ts`, unit tests, contact details strictly hidden until mutual acceptance, scores never displayed).
+- Tests & build: all 27 unit tests pass (`npm test`), `npm run build` passes with 0 errors. Zero em dashes in user-facing copy. Service-role server queries used for RLS safety.
+
+

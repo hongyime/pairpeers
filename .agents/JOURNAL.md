@@ -4,3 +4,6 @@
 - 2026-10-09 16:11 JST: Tagline finalized: 'Vouched, not swiped. Invite only dating through friends who know you best.'
 
 - 2026-10-09 16:40 JST: Migration 0002 applied via tunneled Postgres (Bryan's transient DB password). Invite system live. IDOR posture reviewed with Bryan: capability-URL design accepted.
+
+- 2026-10-10: Antigravity functional gaps implemented. Migrations 0007 (match_responses, matches.accepted_at) and 0008 (match_feedback, match_nudges) added. State machine (lib/matchOptIn.ts) and rationale generator (lib/matchRationale.ts) unit-tested. Endpoints /api/matches/[id]/accept, /decline, /feedback and admin sweep action shipped. Strict privacy enforced: contact details hidden until status=accepted, scores never exposed.
+

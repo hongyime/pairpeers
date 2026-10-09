@@ -91,6 +91,10 @@ export async function POST(req: NextRequest) {
     return renotify(supabase, open.data.id, (open.data.audit ?? {}) as Audit);
   }
 
+  if (action === "sweep") {
+    return runSweep(supabase);
+  }
+
   if (open.data) return responseForCycle(open.data.id, (open.data.audit ?? {}) as Audit);
 
   const [{ data: profiles, error: profilesError }, { data: responses, error: responsesError }, { data: existingMatches, error: matchesError }] = await Promise.all([
@@ -230,4 +234,189 @@ async function renotify(
   const updated: Audit = { ...audit, notifications };
   await supabase.from("match_cycles").update({ audit: updated }).eq("id", cycleId);
   return NextResponse.json({ ...summary(updated), cycle_id: cycleId });
+}
+
+async function runSweep(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+) {
+  const now = new Date();
+  const nowMs = now.getTime();
+  const EXPIRY_MS = 72 * 60 * 60 * 1000;
+  const NUDGE_7D_MS = 7 * 24 * 60 * 60 * 1000;
+  const NUDGE_14D_MS = 14 * 24 * 60 * 60 * 1000;
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://pairpeers.hong-yi.me").replace(
+    /\/$/,
+    ""
+  );
+
+  // 1. Expiry sweep (pending matches older than 72h)
+  const { data: pendingMatches, error: pendingErr } = await supabase
+    .from("matches")
+    .select("id, cycle_id, match_cycles(id, started_at, audit)")
+    .eq("status", "pending");
+
+  if (pendingErr) {
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
+  }
+
+  const expiredMatchIds: string[] = [];
+  const cycleExpiredCounts = new Map<
+    string,
+    { count: number; audit: Record<string, unknown> }
+  >();
+
+  for (const match of pendingMatches ?? []) {
+    const cycle = match.match_cycles as unknown as {
+      id: string;
+      started_at: string;
+      audit: Record<string, unknown>;
+    } | null;
+    if (!cycle?.started_at) continue;
+
+    const cycleStartMs = new Date(cycle.started_at).getTime();
+    if (nowMs - cycleStartMs > EXPIRY_MS) {
+      expiredMatchIds.push(match.id);
+      const current = cycleExpiredCounts.get(cycle.id) ?? {
+        count: 0,
+        audit: (cycle.audit ?? {}) as Record<string, unknown>,
+      };
+      current.count += 1;
+      cycleExpiredCounts.set(cycle.id, current);
+    }
+  }
+
+  if (expiredMatchIds.length > 0) {
+    const { error: expireErr } = await supabase
+      .from("matches")
+      .update({ status: "expired" })
+      .in("id", expiredMatchIds);
+
+    if (expireErr) {
+      return NextResponse.json({ error: "db_error" }, { status: 500 });
+    }
+
+    for (const [cycleId, entry] of cycleExpiredCounts) {
+      const prevAudit = entry.audit;
+      const updatedAudit = {
+        ...prevAudit,
+        expired_matches_count:
+          ((prevAudit.expired_matches_count as number) ?? 0) + entry.count,
+        last_swept_at: now.toISOString(),
+      };
+      await supabase
+        .from("match_cycles")
+        .update({ audit: updatedAudit })
+        .eq("id", cycleId);
+    }
+  }
+
+  // 2. Telegram feedback nudges (7d and 14d post-acceptance)
+  const { data: acceptedMatches, error: acceptedErr } = await supabase
+    .from("matches")
+    .select("id, a_id, b_id, accepted_at, match_cycles(started_at)")
+    .eq("status", "accepted");
+
+  if (acceptedErr) {
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
+  }
+
+  const matchIds = (acceptedMatches ?? []).map((m) => m.id);
+  let existingNudges: Array<{
+    match_id: string;
+    profile_id: string;
+    nudge_type: string;
+  }> = [];
+
+  if (matchIds.length > 0) {
+    const { data: nudgesData } = await supabase
+      .from("match_nudges")
+      .select("match_id, profile_id, nudge_type")
+      .in("match_id", matchIds);
+    existingNudges = nudgesData ?? [];
+  }
+
+  const sentNudgeSet = new Set(
+    existingNudges.map((n) => `${n.match_id}:${n.profile_id}:${n.nudge_type}`)
+  );
+
+  const participantIds = new Set<string>();
+  for (const match of acceptedMatches ?? []) {
+    participantIds.add(match.a_id);
+    participantIds.add(match.b_id);
+  }
+
+  let tgMap = new Map<string, number>();
+  if (participantIds.size > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, telegram_id")
+      .in("id", [...participantIds]);
+    tgMap = new Map((profiles ?? []).map((p) => [p.id, Number(p.telegram_id)]));
+  }
+
+  let nudges7dSent = 0;
+  let nudges14dSent = 0;
+
+  for (const match of acceptedMatches ?? []) {
+    const cycleInfo = match.match_cycles as unknown as { started_at?: string } | null;
+    const acceptedAtStr = match.accepted_at ?? cycleInfo?.started_at;
+    if (!acceptedAtStr) continue;
+
+    const acceptedMs = new Date(acceptedAtStr).getTime();
+    const ageMs = nowMs - acceptedMs;
+    const is7d = ageMs >= NUDGE_7D_MS;
+    const is14d = ageMs >= NUDGE_14D_MS;
+
+    for (const profileId of [match.a_id, match.b_id]) {
+      const tgId = tgMap.get(profileId);
+      if (!tgId) continue;
+
+      const key7d = `${match.id}:${profileId}:day_7`;
+      if (is7d && !sentNudgeSet.has(key7d)) {
+        try {
+          const msg = `How did your introduction go? Share private feedback in PairPeers: ${baseUrl}/matches`;
+          await sendTelegramMessage(tgId, msg);
+          await supabase.from("match_nudges").insert({
+            match_id: match.id,
+            profile_id: profileId,
+            nudge_type: "day_7",
+            sent_at: now.toISOString(),
+          });
+          sentNudgeSet.add(key7d);
+          nudges7dSent += 1;
+        } catch (err) {
+          console.error(`[sweep] failed to send 7d nudge to ${tgId}:`, err);
+        }
+      }
+
+      const key14d = `${match.id}:${profileId}:day_14`;
+      if (is14d && !sentNudgeSet.has(key14d)) {
+        try {
+          const msg = `Would you meet your introduction again? Let us know privately in PairPeers: ${baseUrl}/matches`;
+          await sendTelegramMessage(tgId, msg);
+          await supabase.from("match_nudges").insert({
+            match_id: match.id,
+            profile_id: profileId,
+            nudge_type: "day_14",
+            sent_at: now.toISOString(),
+          });
+          sentNudgeSet.add(key14d);
+          nudges14dSent += 1;
+        } catch (err) {
+          console.error(`[sweep] failed to send 14d nudge to ${tgId}:`, err);
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    action: "sweep",
+    expired_matches_count: expiredMatchIds.length,
+    cycles_updated: cycleExpiredCounts.size,
+    nudges_sent: {
+      day_7: nudges7dSent,
+      day_14: nudges14dSent,
+    },
+  });
 }
