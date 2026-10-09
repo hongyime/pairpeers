@@ -45,3 +45,15 @@
 - Invite system is LIVE: /invites (create), /invite/[code] (preview+claim).
 - Bryan's remaining: first login, then founder SQL (is_member/is_founder).
 - IDOR question answered: preview is an intentional capability URL, not IDOR.
+
+## 2026-10-09 17:44 JST - RLS lockdown applied, service_role live
+- Bryan supplied service_role JWT + sb_secret + anon JWT in chat (used
+  transiently, never stored). Added SUPABASE_SERVICE_ROLE_KEY and
+  SUPABASE_SECRET_KEY (sensitive) to Vercel; left NEXT_PUBLIC_SUPABASE_ANON_KEY
+  on the working new-format publishable key (legacy JWT he pasted may be
+  revoked — not touching a working key).
+- Redeployed (89a6751 READY), then applied migration 0003: pilot_open_all
+  policies dropped, zero policies remain.
+- Verified: anon role sees 0 rows on all tables, INSERT denied; app works via
+  service_role (invite preview returns invalid_code, not db_error).
+- NOTE: secrets were pasted in chat history — flag rotation hygiene to Bryan.
