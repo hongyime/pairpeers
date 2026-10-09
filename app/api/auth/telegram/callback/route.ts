@@ -1,0 +1,114 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  SESSION_COOKIE,
+  SESSION_TTL_SECONDS,
+  createSessionToken,
+} from "@/lib/session";
+import { verifyTelegramIdToken } from "@/lib/telegram";
+import {
+  REDIRECT_STATE_COOKIE,
+  REDIRECT_VERIFIER_COOKIE,
+} from "../redirect/route";
+
+const TOKEN_URL = "https://oauth.telegram.org/token";
+const COOKIE_PATH = "/api/auth/telegram";
+
+function fail(req: NextRequest, error: string): NextResponse {
+  const login = req.nextUrl.clone();
+  login.pathname = "/login";
+  login.searchParams.set("error", error);
+  return NextResponse.redirect(login);
+}
+
+function clearOAuthCookies(res: NextResponse): void {
+  res.cookies.delete({ name: REDIRECT_STATE_COOKIE, path: COOKIE_PATH });
+  res.cookies.delete({ name: REDIRECT_VERIFIER_COOKIE, path: COOKIE_PATH });
+}
+
+/**
+ * Handles the Telegram OIDC redirect back from oauth.telegram.org/auth.
+ * Validates `state` (CSRF), exchanges the code for tokens with the client
+ * secret (Basic auth), verifies the id_token, establishes the session,
+ * and sends the user to the questionnaire.
+ */
+export async function GET(req: NextRequest) {
+  const clientId = process.env.NEXT_PUBLIC_TELEGRAM_CLIENT_ID;
+  const clientSecret = process.env.TELEGRAM_CLIENT_SECRET;
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!clientId || !clientSecret || !sessionSecret) {
+    return NextResponse.json({ error: "server_misconfigured" }, { status: 500 });
+  }
+
+  const params = req.nextUrl.searchParams;
+  if (params.get("error")) return fail(req, "access_denied");
+  const code = params.get("code");
+  const state = params.get("state");
+  if (!code || !state) return fail(req, "missing_code");
+
+  // CSRF check: state must match what we issued to this browser.
+  const expectedState = req.cookies.get(REDIRECT_STATE_COOKIE)?.value;
+  const verifier = req.cookies.get(REDIRECT_VERIFIER_COOKIE)?.value;
+  if (!expectedState || !verifier || state !== expectedState) {
+    return fail(req, "state_mismatch");
+  }
+
+  // Exchange the code for tokens (server-side; secret never leaves here).
+  const redirectUri = `${req.nextUrl.origin}/api/auth/telegram/callback`;
+  let tokenRes: Response;
+  try {
+    tokenRes = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        authorization:
+          "Basic " +
+          Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        client_id: clientId,
+        code_verifier: verifier,
+      }),
+    });
+  } catch {
+    return fail(req, "token_exchange_failed");
+  }
+  if (!tokenRes.ok) return fail(req, "token_exchange_failed");
+
+  let idToken: unknown;
+  try {
+    ({ id_token: idToken } = await tokenRes.json());
+  } catch {
+    return fail(req, "token_exchange_failed");
+  }
+  if (typeof idToken !== "string" || !idToken) return fail(req, "missing_id_token");
+
+  let payload;
+  try {
+    payload = await verifyTelegramIdToken(idToken, clientId);
+  } catch {
+    return fail(req, "invalid_token");
+  }
+
+  // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id).
+
+  const done = req.nextUrl.clone();
+  done.pathname = "/questionnaire";
+  done.search = "";
+  const res = NextResponse.redirect(done);
+  res.cookies.set(
+    SESSION_COOKIE,
+    await createSessionToken(payload.id, sessionSecret),
+    {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_SECONDS,
+    }
+  );
+  clearOAuthCookies(res);
+  return res;
+}
