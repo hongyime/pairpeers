@@ -1,59 +1,80 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
+import { NONCE_COOKIE } from "./nonce/route";
 
-const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60; // reject logins older than 24h
+const ISSUER = "https://oauth.telegram.org";
+const JWKS_URL = new URL("https://oauth.telegram.org/.well-known/jwks.json");
+
+// Cached across warm invocations; jose handles key rotation via the set.
+const JWKS = createRemoteJWKSet(JWKS_URL);
+
+type TelegramIdToken = {
+  /** Numeric Telegram user ID — stable identity, same value the legacy widget returned as `id`. */
+  id: number;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  preferred_username?: string;
+  picture?: string;
+  nonce?: string;
+};
 
 /**
- * Verifies the Telegram Login widget payload per
- * https://core.telegram.org/widgets/login#checking-authorization
+ * Verifies a Telegram OIDC id_token from the telegram-login.js popup flow.
+ * See https://core.telegram.org/bots/telegram-login
  *
- * data_check_string = "k=v" lines for every field except `hash`,
- * sorted alphabetically, joined with "\n".
- * secret_key = SHA256(bot_token); check = HMAC_SHA256(secret_key, data_check_string).
+ * Checks: RS256 signature against Telegram's JWKS, iss, aud == our Client ID,
+ * expiry, and the nonce we issued for this browser session.
  */
-function verifyTelegramAuth(params: URLSearchParams, botToken: string): boolean {
-  const receivedHash = params.get("hash");
-  if (!receivedHash) return false;
-
-  const pairs: Array<[string, string]> = [];
-  params.forEach((value, key) => {
-    if (key !== "hash") pairs.push([key, value]);
-  });
-  pairs.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  const dataCheckString = pairs.map(([k, v]) => `${k}=${v}`).join("\n");
-
-  const secretKey = createHash("sha256").update(botToken).digest();
-  const expectedHash = createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
-
-  const a = Buffer.from(expectedHash, "utf8");
-  const b = Buffer.from(receivedHash, "utf8");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
-export async function GET(req: NextRequest) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) {
+export async function POST(req: NextRequest) {
+  const clientId = process.env.NEXT_PUBLIC_TELEGRAM_CLIENT_ID;
+  if (!clientId) {
     return NextResponse.json({ error: "server_misconfigured" }, { status: 500 });
   }
 
-  const params = req.nextUrl.searchParams;
-  if (!verifyTelegramAuth(params, botToken)) {
-    return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+  let idToken: unknown;
+  try {
+    ({ id_token: idToken } = await req.json());
+  } catch {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+  if (typeof idToken !== "string" || !idToken) {
+    return NextResponse.json({ error: "missing_id_token" }, { status: 400 });
   }
 
-  // Reject stale logins (replay protection).
-  const authDate = Number(params.get("auth_date") ?? 0);
-  if (!authDate || Date.now() / 1000 - authDate > MAX_AUTH_AGE_SECONDS) {
-    return NextResponse.json({ error: "stale_auth" }, { status: 401 });
+  let payload: TelegramIdToken;
+  try {
+    const verified = await jwtVerify(idToken, JWKS, {
+      issuer: ISSUER,
+      audience: clientId,
+      algorithms: ["RS256", "ES256"], // pinned — never accept "none" or symmetric algs
+    });
+    payload = verified.payload as TelegramIdToken;
+  } catch {
+    return NextResponse.json({ error: "invalid_token" }, { status: 401 });
   }
 
-  // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id)
-  // and establish a session (e.g. Supabase Auth custom token / signed cookie).
-  const user: Record<string, string> = {};
-  params.forEach((value, key) => {
-    if (key !== "hash") user[key] = value;
-  });
+  // Replay protection: the token must carry the nonce we issued to this browser.
+  const expectedNonce = req.cookies.get(NONCE_COOKIE)?.value;
+  if (!expectedNonce || payload.nonce !== expectedNonce) {
+    return NextResponse.json({ error: "nonce_mismatch" }, { status: 401 });
+  }
 
-  return NextResponse.json({ ok: true, user });
+  // The numeric Telegram user ID is the stable identity key.
+  if (typeof payload.id !== "number" || !Number.isFinite(payload.id)) {
+    return NextResponse.json({ error: "missing_user_id" }, { status: 401 });
+  }
+
+  // TODO: upsert the user into Supabase `profiles` (keyed on telegram_id = payload.id)
+  // and establish a session (signed cookie). Clear the nonce cookie on success.
+  const user = {
+    id: payload.id,
+    name: payload.name ?? null,
+    username: payload.preferred_username ?? null,
+    photo_url: payload.picture ?? null,
+  };
+
+  const res = NextResponse.json({ ok: true, user });
+  res.cookies.delete(NONCE_COOKIE);
+  return res;
 }

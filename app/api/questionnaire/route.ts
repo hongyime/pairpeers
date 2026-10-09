@@ -22,5 +22,5 @@ export async function POST(req: NextRequest) {
     JSON.stringify({ received_at: new Date().toISOString(), answers: body }) + "\n"
   );
 
-  return NextResponse.json({ ok: true, stored: file, note: "stub storage — see TODO in route" });
+  return NextResponse.json({ ok: true });
 }

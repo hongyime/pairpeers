@@ -48,7 +48,7 @@ export default function QuestionnairePage() {
         body: JSON.stringify(answers),
       });
       const data = await res.json();
-      setStatus(res.ok ? `Saved ✓ (${data.stored})` : `Error: ${data.error}`);
+      setStatus(res.ok ? "Saved ✓" : `Error: ${data.error}`);
     } catch (err) {
       setStatus(`Network error: ${String(err)}`);
     } finally {
