@@ -8,7 +8,7 @@ For agents: read `AGENTS.md` first, then `.agents/STATE.md` before changing file
 
 Instead of swiping through strangers, you get in because a friend vouches for
 you — and your profile is built from what your friends say about you. One
-thoughtful match per cycle, computed with the Gale–Shapley stable-matching
+one match per cycle, computed with the Gale–Shapley stable-matching
 algorithm. No infinite scroll.
 
 ## Stack

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "PairPeers — Vouched, not swiped.",
     short_name: "PairPeers",
     description:
-      "An invite-only, friends-vouch-friends way to meet someone new. One thoughtful match at a time.",
+      "An invite-only, friends-vouch-friends way to meet someone new.",
     start_url: "/",
     display: "standalone",
     background_color: "#FDFBF9",

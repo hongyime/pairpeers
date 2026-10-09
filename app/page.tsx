@@ -8,8 +8,8 @@ export default function Home() {
           <div className="eyebrow">Invite-only pilot</div>
           <h1>Vouched, not swiped.</h1>
           <p className="hero-lede">
-            Meet someone new through the friends who know you best — one thoughtful
-            match at a time.
+            Meet someone new through the friends who know you best — no swiping,
+            no endless scrolling.
           </p>
           <div className="actions">
             <Link href="/login" className="btn">Sign in with Telegram</Link>
