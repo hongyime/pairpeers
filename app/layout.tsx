@@ -19,7 +19,7 @@ const raleway = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "PairPeers — Vouched, not swiped.",
+  title: "PairPeers · Vouched, not swiped.",
   description:
     "Vouched, not swiped. Invite only dating through friends who know you best.",
   manifest: "/manifest.webmanifest",

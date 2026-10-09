@@ -63,7 +63,7 @@ export default function QuestionnaireForm() {
           <div className="eyebrow">PairPeers</div>
           <h1>The questionnaire</h1>
           <p className="muted">
-            A short sample of the full thing. Your answers feed the matching engine —
+            A short sample of the full thing. Your answers feed the matching engine.
             hard dealbreakers are respected absolutely.
           </p>
           <div className="progress-wrap" aria-label="Question 3 of 8">

@@ -149,7 +149,7 @@ p { font-size: 17px; line-height: 1.65; }
 .trust-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; align-items: stretch; }
 .trust-card { padding: 36px; }
 .trust-card h3 { margin-bottom: 12px; color: var(--primary); font-family: var(--font-raleway), var(--font-body); font-size: 14px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
-.trust-card strong { display: block; margin-bottom: 16px; color: var(--ink); font-family: var(--font-alice), var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 400; line-height: 1.05; }
+.trust-card strong { display: block; margin-bottom: 16px; color: var(--ink); font-family: var(--font-alice), var(--font-display); font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 400; line-height: 1.1; }
 
 .closing { padding-bottom: var(--section-desktop); text-align: center; }
 .closing .section-heading { margin: 0 auto; }
@@ -174,7 +174,7 @@ p { font-size: 17px; line-height: 1.65; }
 .card { width: 100%; max-width: 760px; }
 .card.narrow { max-width: 460px; }
 .login-card { padding: clamp(28px, 6vw, 52px); text-align: center; }
-.login-card h1, .questionnaire-header h1 { margin: 22px 0 14px; font-size: clamp(3rem, 9vw, 5rem); line-height: .95; }
+.login-card h1, .questionnaire-header h1 { margin: 22px 0 14px; font-size: clamp(2.2rem, 7vw, 3rem); line-height: 1; }
 .login-card p { color: var(--body); }
 .widget-wrap { display: flex; justify-content: center; margin: 28px 0 22px; }
 .muted { color: var(--body); }

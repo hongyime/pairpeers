@@ -5,20 +5,19 @@ export default function Home() {
     <main>
       <section className="hero">
         <div className="page-shell hero-copy">
-          <div className="eyebrow">Invite-only pilot</div>
           <h1>
             Vouched,
             <br />
             not swiped.
           </h1>
           <p className="hero-lede">
-            Invite only dating through friends who know you best.
+            Invite-only dating through friends who know you best.
           </p>
           <div className="actions">
             <Link href="/login" className="btn">Sign in with Telegram</Link>
             <a href="#how-it-works" className="btn secondary">How it works</a>
           </div>
-          <p className="status-line">Pilot now onboarding · Next match cycle: TBA</p>
+          <p className="status-line">Now onboarding for the pilot.</p>
         </div>
       </section>
 
@@ -26,15 +25,15 @@ export default function Home() {
         <div className="page-shell value-grid">
           <article className="value-card">
             <h3>One match at a time</h3>
-            <p>No endless scrolling. Space to actually get to know one person.</p>
+            <p>No feeds. One person, properly considered.</p>
           </article>
           <article className="value-card">
-            <h3>Only your match sees your profile</h3>
-            <p>Your introduction is private by default, not a public catalogue.</p>
+            <h3>Private by default</h3>
+            <p>Your profile is shown to your match only.</p>
           </article>
           <article className="value-card">
-            <h3>Friends vouch you in</h3>
-            <p>Real references add context no profile prompt can capture.</p>
+            <h3>Vouched by friends</h3>
+            <p>People who know you write your introduction.</p>
           </article>
         </div>
       </section>
@@ -43,14 +42,14 @@ export default function Home() {
         <div className="page-shell">
           <div className="section-heading">
             <h2>How it works</h2>
-            <p>A calmer path from a friend&apos;s invitation to a genuinely considered date.</p>
+            <p>From a friend&apos;s invite to a real date.</p>
           </div>
           <div className="steps">
-            <article className="step-card"><span className="step-number">01</span><h3>Invite</h3><p>A friend invites you into the pilot. It starts with someone who already knows you.</p></article>
-            <article className="step-card"><span className="step-number">02</span><h3>Vouch</h3><p>Your friends share what makes you a good person to meet, in their own words.</p></article>
-            <article className="step-card"><span className="step-number">03</span><h3>Questionnaire</h3><p>You tell us what matters to you, including the boundaries that should be respected.</p></article>
-            <article className="step-card"><span className="step-number">04</span><h3>One match</h3><p>The matching engine considers fit and dealbreakers to introduce one person at a time.</p></article>
-            <article className="step-card"><span className="step-number">05</span><h3>Date</h3><p>If the feeling is mutual, you decide together whether to share contact details and meet.</p></article>
+            <article className="step-card"><span className="step-number">01</span><h3>Invite</h3><p>It starts with someone who knows you.</p></article>
+            <article className="step-card"><span className="step-number">02</span><h3>Vouch</h3><p>Friends write your reference, in their own words.</p></article>
+            <article className="step-card"><span className="step-number">03</span><h3>Questionnaire</h3><p>You tell us what matters, and your dealbreakers.</p></article>
+            <article className="step-card"><span className="step-number">04</span><h3>One match</h3><p>One compatible introduction at a time.</p></article>
+            <article className="step-card"><span className="step-number">05</span><h3>Date</h3><p>Mutual interest? You decide what to share.</p></article>
           </div>
         </div>
       </section>
@@ -59,18 +58,18 @@ export default function Home() {
         <div className="page-shell">
           <div className="section-heading">
             <h2>Thoughtful by design.</h2>
-            <p>Explainable matching and explicit consent keep the experience human.</p>
+            <p>No black boxes. No surprises.</p>
           </div>
           <div className="trust-grid">
             <article className="trust-card">
               <h3>The algorithm</h3>
-              <strong>Stable matching — the same math behind medical residency placements.</strong>
-              <p>In plain words: it looks for a pairing that works for both people, not a popularity ranking.</p>
+              <strong>Stable matching. The same math behind medical residency placements.</strong>
+              <p>It finds a pairing that works for both people. Not a popularity contest.</p>
             </article>
             <article className="trust-card">
               <h3>Your privacy</h3>
               <strong>Your answers stay private.</strong>
-              <p>Nothing is sold, nothing is shared beyond your match, and your contact details are shared only if you both say yes.</p>
+              <p>Nothing is sold. Nothing is shared beyond your match. Contact details only if you both agree.</p>
             </article>
           </div>
         </div>
@@ -79,7 +78,7 @@ export default function Home() {
       <section className="section closing">
         <div className="page-shell section-heading">
           <h2>Start with a little trust.</h2>
-          <p>Join the pilot through the friends who would vouch for you.</p>
+          <p>Ask a friend for an invite.</p>
           <div className="actions"><Link href="/login" className="btn">Sign in with Telegram</Link></div>
         </div>
       </section>

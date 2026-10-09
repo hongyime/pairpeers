@@ -35,7 +35,7 @@ export async function QuestionnaireGate() {
           <h1>Members only</h1>
           <p className="muted">
             The questionnaire is for vouched members. Claim an invite from a
-            friend first — then come back and tell us about yourself.
+            friend first, then come back and tell us about yourself.
           </p>
           <p className="muted small">
             <Link href="/">← Back home</Link>
