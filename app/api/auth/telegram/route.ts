@@ -87,13 +87,17 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ ok: true, user });
   // Establish the session: signed, httpOnly, Secure, SameSite=Lax.
-  res.cookies.set(SESSION_COOKIE, createSessionToken(payload.id, sessionSecret), {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: SESSION_TTL_SECONDS,
-  });
+  res.cookies.set(
+    SESSION_COOKIE,
+    await createSessionToken(payload.id, sessionSecret),
+    {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_SECONDS,
+    }
+  );
   // Delete the one-time nonce with the same path it was set with.
   res.cookies.delete({ name: NONCE_COOKIE, path: "/api/auth/telegram" });
   return res;

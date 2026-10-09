@@ -9,11 +9,13 @@ export const config = {
  * Gates authenticated routes behind the signed session cookie issued by
  * POST /api/auth/telegram. Pages redirect to /login; API routes get a 401.
  */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const secret = process.env.SESSION_SECRET;
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const valid =
-    secret && token ? verifySessionToken(token, secret) !== null : false;
+    secret && token
+      ? (await verifySessionToken(token, secret)) !== null
+      : false;
 
   if (valid) return NextResponse.next();
 
