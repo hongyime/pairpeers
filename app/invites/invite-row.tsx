@@ -12,7 +12,7 @@ type Invite = {
   created_at: string;
 };
 
-/** One invite row: code, status, copy-link, and a QR for in-person sharing. */
+/** One invite card: code + status, actions, and a scannable QR. */
 export default function InviteRow({
   invite,
   baseUrl,
@@ -38,28 +38,30 @@ export default function InviteRow({
   };
 
   return (
-    <li className={`invite-row invite-${status}`}>
-      <code>{invite.code}</code>
-      <span className="muted small">{status}</span>
+    <li className={`invite-card invite-${status}`}>
+      <div className="invite-top">
+        <code>{invite.code}</code>
+        <span className={`pill pill-${status}`}>{status}</span>
+      </div>
       {!used && !expired && (
-        <>
-          <button type="button" className="link-btn" onClick={copy}>
-            {copied ? "copied ✓" : "copy link"}
+        <div className="invite-actions">
+          <button type="button" className="chip-btn" onClick={copy}>
+            {copied ? "Copied ✓" : "Copy link"}
           </button>
           <button
             type="button"
-            className="link-btn"
+            className="chip-btn"
             onClick={() => setShowQr((v) => !v)}
             aria-expanded={showQr}
           >
-            {showQr ? "hide QR" : "QR"}
+            {showQr ? "Hide QR" : "Show QR"}
           </button>
-        </>
+        </div>
       )}
       {showQr && !used && !expired && (
-        <div className="qr-wrap">
-          <QRCode value={link} size={160} />
-          <p className="muted small">Scan to claim this invite</p>
+        <div className="qr-card">
+          <QRCode value={link} size={168} fgColor="#832848" />
+          <p>Scan to claim this invite</p>
         </div>
       )}
     </li>

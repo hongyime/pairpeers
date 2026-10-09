@@ -160,7 +160,7 @@ export default function TelegramLogin({
           Continue with Telegram
         </a>
         <p className="muted small">
-          <button type="button" className="link-btn" onClick={login}>
+          <button type="button" className="chip-btn" onClick={login}>
             Try the popup instead
           </button>
         </p>

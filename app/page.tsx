@@ -6,7 +6,11 @@ export default function Home() {
       <section className="hero">
         <div className="page-shell hero-copy">
           <div className="eyebrow">Invite-only pilot</div>
-          <h1>Vouched, not swiped.</h1>
+          <h1>
+            Vouched,
+            <br />
+            not swiped.
+          </h1>
           <p className="hero-lede">
             Invite only dating through friends who know you best.
           </p>

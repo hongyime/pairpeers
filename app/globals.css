@@ -151,9 +151,6 @@ p { font-size: 17px; line-height: 1.65; }
 .trust-card h3 { margin-bottom: 12px; color: var(--primary); font-family: var(--font-raleway), var(--font-body); font-size: 14px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
 .trust-card strong { display: block; margin-bottom: 16px; color: var(--ink); font-family: var(--font-alice), var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 400; line-height: 1.05; }
 
-.vouch-card { max-width: 620px; margin: 0 auto var(--section-desktop); padding: 42px; border-radius: var(--radius-card); background: var(--tint-pink); box-shadow: var(--shadow-card); }
-.vouch-card blockquote { margin-bottom: 20px; color: var(--primary); font-size: clamp(1.9rem, 4vw, 3.2rem); line-height: 1.08; }
-.vouch-card figcaption { color: var(--sub); font-size: 14px; font-weight: 700; }
 .closing { padding-bottom: var(--section-desktop); text-align: center; }
 .closing .section-heading { margin: 0 auto; }
 .closing .actions { justify-content: center; }
@@ -210,7 +207,6 @@ p { font-size: 17px; line-height: 1.65; }
   .value-strip { padding-bottom: var(--section-mobile); }
   .value-grid, .steps { grid-template-columns: 1fr; }
   .step-card { min-height: 0; }
-  .vouch-card { margin-bottom: var(--section-mobile); padding: 28px; }
   .trust-card { padding: 28px; }
   .actions { flex-direction: column; align-items: stretch; }
   .actions .btn { width: 100%; }
@@ -224,13 +220,19 @@ p { font-size: 17px; line-height: 1.65; }
 
 /* Invite flow */
 .invite-vouch { font-family: var(--font-display); font-size: 1.35rem; line-height: 1.4; color: var(--primary); margin: 18px 0; padding-left: 16px; border-left: 3px solid var(--secondary); }
-.invite-list { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 10px; }
-.invite-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-.invite-row code { font-weight: 700; letter-spacing: 0.04em; }
-.invite-claimed { opacity: 0.55; }
-.invite-expired { opacity: 0.55; }
+.invite-list { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 12px; }
+.invite-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.invite-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.invite-top code { font-size: 1.05rem; font-weight: 700; letter-spacing: .04em; }
+.pill { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-pill); }
+.pill-active { background: var(--tint-pink); color: var(--primary); }
+.pill-claimed, .pill-expired { background: #F1F5F9; color: #64748B; }
+.invite-claimed, .invite-expired { opacity: .6; }
+.invite-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip-btn { min-height: 36px; padding: 8px 16px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: #fff; color: var(--primary); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+.chip-btn:hover { border-color: var(--primary); background: var(--tint-pink); }
+.qr-card { display: grid; gap: 14px; justify-items: center; padding: 28px 20px 22px; border-radius: 12px; background: var(--tint-pink); }
+.qr-card svg { border-radius: 8px; }
+.qr-card p { margin: 0; font-size: 14px; font-weight: 600; color: var(--primary); }
 textarea { width: 100%; min-height: 110px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-size: 16px; font-family: inherit; resize: vertical; }
 label { display: block; font-weight: 600; margin: 14px 0 8px; }
-.link-btn { background: none; border: none; padding: 0; color: var(--secondary); font-size: 0.85rem; cursor: pointer; text-decoration: underline; font-family: inherit; }
-.qr-wrap { flex-basis: 100%; display: grid; gap: 8px; justify-items: start; padding: 12px; background: #fff; border: 1px dashed var(--line); border-radius: 10px; margin-top: 4px; }
-.invite-row { flex-wrap: wrap; }
