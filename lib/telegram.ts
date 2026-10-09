@@ -24,10 +24,15 @@ export type TelegramIdToken = {
  * Checks: RS256/ES256 signature against Telegram's JWKS (pinned algorithms —
  * never "none" or symmetric), iss, aud == our Client ID, exp+iat present,
  * and a 1-hour max token age bounding the replay window.
+ *
+ * When `expectedNonce` is provided, jose validates the token's `nonce` claim
+ * during verification — keeping the replay check inside the library so a
+ * caller can never accidentally skip it.
  */
 export async function verifyTelegramIdToken(
   idToken: string,
-  clientId: string
+  clientId: string,
+  expectedNonce?: string
 ): Promise<TelegramIdToken> {
   const verified = await jwtVerify(idToken, JWKS, {
     issuer: ISSUER,
@@ -35,6 +40,7 @@ export async function verifyTelegramIdToken(
     algorithms: ["RS256", "ES256"],
     requiredClaims: ["exp", "iat"], // fail closed if Telegram ever omits them
     maxTokenAge: "1h",
+    ...(expectedNonce ? { nonce: expectedNonce } : {}),
   });
   const payload = verified.payload as TelegramIdToken;
   if (typeof payload.id !== "number" || !Number.isFinite(payload.id)) {

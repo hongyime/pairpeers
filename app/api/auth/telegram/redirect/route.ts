@@ -28,7 +28,10 @@ export async function GET(req: NextRequest) {
   const verifier = randomBytes(64).toString("hex"); // 128 chars, within PKCE 43–128
   const challenge = createHash("sha256").update(verifier).digest("base64url");
 
-  const redirectUri = `${req.nextUrl.origin}/api/auth/telegram/callback`;
+  // Canonical base URL: Telegram requires the redirect_uri to be
+  // pre-registered exactly in BotFather, so it must not vary per host.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+  const redirectUri = `${baseUrl}/api/auth/telegram/callback`;
   const authUrl = new URL("https://oauth.telegram.org/auth");
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("redirect_uri", redirectUri);

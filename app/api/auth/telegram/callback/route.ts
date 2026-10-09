@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   SESSION_COOKIE,
@@ -13,16 +14,35 @@ import {
 const TOKEN_URL = "https://oauth.telegram.org/token";
 const COOKIE_PATH = "/api/auth/telegram";
 
+function clearOAuthCookies(res: NextResponse): void {
+  res.cookies.delete({ name: REDIRECT_STATE_COOKIE, path: COOKIE_PATH });
+  res.cookies.delete({ name: REDIRECT_VERIFIER_COOKIE, path: COOKIE_PATH });
+}
+
 function fail(req: NextRequest, error: string): NextResponse {
   const login = req.nextUrl.clone();
   login.pathname = "/login";
   login.searchParams.set("error", error);
-  return NextResponse.redirect(login);
+  const res = NextResponse.redirect(login);
+  // Consume the one-time OAuth cookies even on failure.
+  clearOAuthCookies(res);
+  return res;
 }
 
-function clearOAuthCookies(res: NextResponse): void {
-  res.cookies.delete({ name: REDIRECT_STATE_COOKIE, path: COOKIE_PATH });
-  res.cookies.delete({ name: REDIRECT_VERIFIER_COOKIE, path: COOKIE_PATH });
+/** Constant-time comparison for the CSRF state token. */
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ba.length === bb.length && timingSafeEqual(ba, bb);
+}
+
+/**
+ * Canonical app base URL for the OAuth redirect_uri. Telegram requires the
+ * redirect_uri to be pre-registered exactly in BotFather, so it must not
+ * vary per request host — fall back to the request origin for local dev.
+ */
+function appBaseUrl(req: NextRequest): string {
+  return process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
 }
 
 /**
@@ -48,12 +68,12 @@ export async function GET(req: NextRequest) {
   // CSRF check: state must match what we issued to this browser.
   const expectedState = req.cookies.get(REDIRECT_STATE_COOKIE)?.value;
   const verifier = req.cookies.get(REDIRECT_VERIFIER_COOKIE)?.value;
-  if (!expectedState || !verifier || state !== expectedState) {
+  if (!expectedState || !verifier || !safeEqual(state, expectedState)) {
     return fail(req, "state_mismatch");
   }
 
   // Exchange the code for tokens (server-side; secret never leaves here).
-  const redirectUri = `${req.nextUrl.origin}/api/auth/telegram/callback`;
+  const redirectUri = `${appBaseUrl(req)}/api/auth/telegram/callback`;
   let tokenRes: Response;
   try {
     tokenRes = await fetch(TOKEN_URL, {
@@ -62,7 +82,9 @@ export async function GET(req: NextRequest) {
         "content-type": "application/x-www-form-urlencoded",
         authorization:
           "Basic " +
-          Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
+          Buffer.from(
+            `${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`
+          ).toString("base64"),
       },
       body: new URLSearchParams({
         grant_type: "authorization_code",

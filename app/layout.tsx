@@ -21,7 +21,7 @@ const raleway = localFont({
 export const metadata: Metadata = {
   title: "PairPeers — Vouched, not swiped.",
   description:
-    "An invite-only, friends-vouch-friends way to meet someone new.",
+    "Vouched, not swiped. Invite only dating through friends who know you best.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
