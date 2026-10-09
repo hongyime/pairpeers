@@ -251,3 +251,8 @@ label { display: block; font-weight: 600; margin: 14px 0 8px; }
 .q-importance { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .q-importance-label { font-size: 13px; font-weight: 600; color: var(--body); }
 .chip-btn[data-active="true"] { border-color: transparent; background: var(--primary); color: #fff; }
+
+/* Admin */
+.stack { display: grid; gap: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.result { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
