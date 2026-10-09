@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   QUESTIONS,
   IMPORTANCE_KEYS,
@@ -8,6 +8,7 @@ import {
   type Importance,
   type QuestionDef,
 } from "@/lib/questionnaire";
+import { useTma } from "../tma/tma-shell";
 
 type AnswerValue = string | string[];
 
@@ -112,7 +113,12 @@ function TrackSection({
   );
 }
 
-export default function QuestionnairePage() {
+export function QuestionnaireForm({ onComplete, onAction }: {
+  onComplete?: () => void;
+  onAction?: () => void;
+}) {
+  const { webApp } = useTma();
+  const formRef = useRef<HTMLFormElement>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [importance, setImportance] = useState<Record<string, Importance>>({});
   const [loading, setLoading] = useState(true);
@@ -145,11 +151,14 @@ export default function QuestionnairePage() {
     })();
   }, []);
 
-  const setSingle = (key: string, value: string) =>
+  const setSingle = (key: string, value: string) => {
+    onAction?.();
     setAnswers((p) => ({ ...p, [key]: value }));
+  };
   const setText = (key: string, value: string) =>
     setAnswers((p) => ({ ...p, [key]: value }));
-  const toggleMulti = (key: string, value: string, max: number) =>
+  const toggleMulti = (key: string, value: string, max: number) => {
+    onAction?.();
     setAnswers((p) => {
       const cur = Array.isArray(p[key]) ? (p[key] as string[]) : [];
       const next = cur.includes(value)
@@ -159,14 +168,31 @@ export default function QuestionnairePage() {
           : cur;
       return { ...p, [key]: next };
     });
-  const setImp = (key: string, value: Importance) =>
+  };
+  const setImp = (key: string, value: Importance) => {
+    onAction?.();
     setImportance((p) => ({ ...p, [key]: value }));
+  };
 
   const required = useMemo(() => QUESTIONS.filter((q) => q.required), []);
   const answeredCount = required.filter((q) => isAnswered(q, answers[q.key])).length;
 
   const about = QUESTIONS.filter((q) => q.track === "about");
   const want = QUESTIONS.filter((q) => q.track === "want");
+
+  useEffect(() => {
+    const mainButton = webApp?.MainButton;
+    if (!mainButton) return;
+    if (answeredCount < required.length) {
+      mainButton.hide();
+      return;
+    }
+    const click = () => formRef.current?.requestSubmit();
+    mainButton.setText(busy ? "Saving…" : "Save answers");
+    mainButton.onClick(click);
+    mainButton.show();
+    return () => { mainButton.offClick(click); mainButton.hide(); };
+  }, [answeredCount, busy, required.length, webApp]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -179,9 +205,12 @@ export default function QuestionnairePage() {
         body: JSON.stringify({ answers: { ...answers, importance } }),
       });
       const data = await res.json().catch(() => ({}));
-      setStatus(
-        res.ok ? "Saved. Your answers now power your matching." : `Couldn’t save: ${data.error ?? "unknown error"}`
-      );
+      if (res.ok) {
+        setStatus("Saved. Your answers now power your matching.");
+        onComplete?.();
+      } else {
+        setStatus(`Couldn’t save: ${data.error ?? "unknown error"}`);
+      }
     } catch {
       setStatus("Network error. Check your connection and try again.");
     } finally {
@@ -218,7 +247,7 @@ export default function QuestionnairePage() {
         <p className="muted q-progress-label">
           {answeredCount} of {required.length} answered
         </p>
-        <form onSubmit={submit} className="form">
+        <form ref={formRef} onSubmit={submit} className="form">
           <TrackSection
             title="About you"
             blurb="Who you are. This builds the profile your match sees."
@@ -239,4 +268,8 @@ export default function QuestionnairePage() {
       </div>
     </main>
   );
+}
+
+export default function QuestionnairePage() {
+  return <QuestionnaireForm />;
 }

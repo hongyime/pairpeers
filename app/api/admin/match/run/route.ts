@@ -7,6 +7,9 @@ import { validateAnswers } from "@/lib/questionnaire";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 type Audit = {
+  status?: "completed" | "skipped_min_pool";
+  skip_reason?: string;
+  min_pool_size?: number;
   pool_size?: number;
   eligible_pair_count?: number;
   excluded_counts?: Record<string, number>;
@@ -25,6 +28,7 @@ function summary(audit: Audit | null | undefined) {
   const failed = Object.values(notifications).filter((s) => s === "failed").length;
   return {
     cycle_id: undefined,
+    status: audit?.status ?? "completed",
     pool_size: audit?.pool_size ?? 0,
     eligible_pair_count: audit?.eligible_pair_count ?? 0,
     matched_count: pairs.length * 2,
@@ -42,12 +46,12 @@ async function requireFounder(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const cronSecret = process.env.CRON_SECRET;
   const cronOk = !!cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`;
-  if (cronOk) return { supabase };
+  if (cronOk) return { supabase, cron: true };
 
   const telegramId = await getSessionTelegramId(req);
   const profile = telegramId ? await getProfileByTelegramId(supabase, telegramId) : null;
   if (!profile?.is_founder) return { error: "forbidden" as const };
-  return { supabase };
+  return { supabase, cron: false };
 }
 
 async function getOpenCycle(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
@@ -70,6 +74,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.error === "forbidden" ? 403 : 503 });
   }
   const { supabase } = auth;
+  const isCron = "cron" in auth && auth.cron;
 
   const action = req.nextUrl.searchParams.get("action");
   const open = await getOpenCycle(supabase);
@@ -143,6 +148,31 @@ export async function POST(req: NextRequest) {
   }
 
   const participants = [...participantById.values()].sort((left, right) => left.id.localeCompare(right.id));
+  const configuredMinimum = Number.parseInt(process.env.MATCH_MIN_POOL ?? "6", 10);
+  const minimumPool = Number.isInteger(configuredMinimum) && configuredMinimum > 0 ? configuredMinimum : 6;
+  if (isCron && participants.length < minimumPool) {
+    const now = new Date().toISOString();
+    const audit: Audit = {
+      status: "skipped_min_pool",
+      skip_reason: "eligible_pool_below_minimum",
+      min_pool_size: minimumPool,
+      pool_size: participants.length,
+      eligible_pair_count: 0,
+      excluded_counts: excluded,
+      pairs: [],
+      algorithm_path: "skipped",
+      unmatched_member_ids: participants.map((person) => person.id),
+      age_filter_skipped_member_ids: [],
+      timestamp: now,
+    };
+    const { data: skippedCycle, error: skipError } = await supabase
+      .from("match_cycles")
+      .insert({ audit, closed_at: now })
+      .select("id, audit")
+      .single();
+    if (skipError || !skippedCycle) return NextResponse.json({ error: "db_error" }, { status: 500 });
+    return responseForCycle(skippedCycle.id, audit);
+  }
   const result = runCycle(participants);
   const now = new Date().toISOString();
   const audit: Audit = {
