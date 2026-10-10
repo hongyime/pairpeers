@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionTelegramId } from "@/lib/auth";
+import { requireFounder } from "@/lib/adminAuth";
 import { sendTelegramMessage } from "@/lib/botNotify";
 import { runCycle, type CycleAnswers, type CycleParticipant } from "@/lib/matchingCycle";
 import { getProfileByTelegramId } from "@/lib/profiles";
 import { validateAnswers } from "@/lib/questionnaire";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { logEvent } from "@/lib/events";
+import { getSweepNudgeText } from "@/lib/matchDates";
 
 type Audit = {
   status?: "completed" | "skipped_min_pool";
@@ -41,19 +43,6 @@ function summary(audit: Audit | null | undefined) {
   };
 }
 
-async function requireFounder(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: "not_configured" as const };
-  const supabase = await createSupabaseServerClient();
-  const cronSecret = process.env.CRON_SECRET;
-  const cronOk = !!cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`;
-  if (cronOk) return { supabase, cron: true };
-
-  const telegramId = await getSessionTelegramId(req);
-  const profile = telegramId ? await getProfileByTelegramId(supabase, telegramId) : null;
-  if (!profile?.is_founder) return { error: "forbidden" as const };
-  return { supabase, cron: false };
-}
-
 async function getOpenCycle(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
   return supabase
     .from("match_cycles")
@@ -71,7 +60,7 @@ function responseForCycle(cycleId: string, audit: Audit) {
 export async function POST(req: NextRequest) {
   const auth = await requireFounder(req);
   if ("error" in auth) {
-    return NextResponse.json({ error: auth.error }, { status: auth.error === "forbidden" ? 403 : 503 });
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   const { supabase } = auth;
   const isCron = "cron" in auth && auth.cron;
@@ -103,7 +92,7 @@ export async function POST(req: NextRequest) {
   if (open.data) return responseForCycle(open.data.id, (open.data.audit ?? {}) as Audit);
 
   const [{ data: profiles, error: profilesError }, { data: responses, error: responsesError }, { data: existingMatches, error: matchesError }] = await Promise.all([
-    supabase.from("profiles").select("id, telegram_id, is_member"),
+    supabase.from("profiles").select("id, telegram_id, is_member, is_banned"),
     supabase.from("questionnaire_responses").select("profile_id, answers"),
     supabase.from("matches").select("a_id, b_id, status").in("status", ["pending", "accepted"]),
   ]);
@@ -111,6 +100,7 @@ export async function POST(req: NextRequest) {
 
   const excluded: Record<string, number> = {
     not_member: 0,
+    banned: 0,
     missing_questionnaire: 0,
     incomplete_questionnaire: 0,
     already_matched: 0,
@@ -120,13 +110,17 @@ export async function POST(req: NextRequest) {
     matchedIds.add(match.a_id);
     matchedIds.add(match.b_id);
   }
-  const responseByProfile = new Map((responses ?? []).map((row) => [row.profile_id, row.answers]));
+  const responseByProfile = new Map((responses ?? []).map((row: any) => [row.profile_id, row.answers]));
   const participantById = new Map<string, CycleParticipant>();
   const telegramById = new Map<string, number>();
 
   for (const profile of profiles ?? []) {
     if (!profile.is_member) {
       excluded.not_member += 1;
+      continue;
+    }
+    if ((profile as any).is_banned) {
+      excluded.banned += 1;
       continue;
     }
     if (matchedIds.has(profile.id)) {
@@ -171,6 +165,13 @@ export async function POST(req: NextRequest) {
       .select("id, audit")
       .single();
     if (skipError || !skippedCycle) return NextResponse.json({ error: "db_error" }, { status: 500 });
+    await logEvent({
+      supabase,
+      eventType: "cycle_run",
+      cycleId: skippedCycle.id,
+      targetId: skippedCycle.id,
+      metadata: { status: audit.status, pool_size: audit.pool_size ?? 0, pair_count: 0 },
+    });
     return responseForCycle(skippedCycle.id, audit);
   }
   const result = runCycle(participants);
@@ -231,6 +232,20 @@ export async function POST(req: NextRequest) {
   }
   audit.notifications = notifications;
   await supabase.from("match_cycles").update({ audit }).eq("id", cycle.id);
+
+  await logEvent({
+    supabase,
+    eventType: "cycle_run",
+    cycleId: cycle.id,
+    targetId: cycle.id,
+    metadata: {
+      status: audit.status ?? "completed",
+      pool_size: audit.pool_size ?? 0,
+      pair_count: (audit.pairs ?? []).length,
+      eligible_pair_count: audit.eligible_pair_count ?? 0,
+      algorithm: audit.algorithm_path ?? null,
+    },
+  });
 
   return responseForCycle(cycle.id, audit);
 }
@@ -384,6 +399,14 @@ async function runSweep(
     tgMap = new Map((profiles ?? []).map((p) => [p.id, Number(p.telegram_id)]));
   }
 
+  // Fetch match_dates to tailor nudge copy (ask for date status first if no date recorded)
+  const acceptedMatchIds = (acceptedMatches ?? []).map((m) => m.id);
+  const { data: dateRows } = await supabase
+    .from("match_dates")
+    .select("match_id, status")
+    .in("match_id", acceptedMatchIds);
+  const dateStatusMap = new Map((dateRows ?? []).map((d) => [d.match_id, d.status]));
+
   let nudges7dSent = 0;
   let nudges14dSent = 0;
 
@@ -396,6 +419,7 @@ async function runSweep(
     const ageMs = nowMs - acceptedMs;
     const is7d = ageMs >= NUDGE_7D_MS;
     const is14d = ageMs >= NUDGE_14D_MS;
+    const dateStatus = dateStatusMap.get(match.id);
 
     for (const profileId of [match.a_id, match.b_id]) {
       const tgId = tgMap.get(profileId);
@@ -404,7 +428,7 @@ async function runSweep(
       const key7d = `${match.id}:${profileId}:day_7`;
       if (is7d && !sentNudgeSet.has(key7d)) {
         try {
-          const msg = `How did your introduction go? Share private feedback in PairPeers: ${baseUrl}/matches`;
+          const msg = getSweepNudgeText("day_7", dateStatus, baseUrl);
           await sendTelegramMessage(tgId, msg);
           await supabase.from("match_nudges").insert({
             match_id: match.id,
@@ -422,7 +446,7 @@ async function runSweep(
       const key14d = `${match.id}:${profileId}:day_14`;
       if (is14d && !sentNudgeSet.has(key14d)) {
         try {
-          const msg = `Would you meet your introduction again? Let us know privately in PairPeers: ${baseUrl}/matches`;
+          const msg = getSweepNudgeText("day_14", dateStatus, baseUrl);
           await sendTelegramMessage(tgId, msg);
           await supabase.from("match_nudges").insert({
             match_id: match.id,

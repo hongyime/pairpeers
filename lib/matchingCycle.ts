@@ -66,8 +66,18 @@ function importance(answers: CycleAnswers, key: string): number {
   return IMPORTANCE_WEIGHT[answers.importance[key] ?? "important"];
 }
 
-function seekingIncludes(seeking: string, identity: string): boolean {
-  if (seeking === "everyone") return true;
+/**
+ * Validates whether candidate's identity matches seeker's preference.
+ * - 'everyone' matches all identities (man, woman, nonbinary, prefer_not).
+ * - 'men' matches only 'man'.
+ * - 'women' matches only 'woman'.
+ * Non-binary and prefer-not-to-say identities match only with seekers looking
+ * for 'everyone', ensuring reciprocal satisfaction without binary gender coercion.
+ */
+export function seekingIncludes(seeking: string, identity: string): boolean {
+  if (seeking === "everyone") {
+    return ["man", "woman", "nonbinary", "prefer_not"].includes(identity) || Boolean(identity);
+  }
   if (seeking === "men") return identity === "man";
   if (seeking === "women") return identity === "woman";
   return false;

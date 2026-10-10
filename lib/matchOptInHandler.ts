@@ -5,6 +5,7 @@ import { computeOptInTransition, type MatchOptInAction } from "@/lib/matchOptIn"
 import { generateMatchRationale } from "@/lib/matchRationale";
 import { getProfileByTelegramId } from "@/lib/profiles";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { logEvent } from "@/lib/events";
 
 export async function handleMatchOptIn(
   req: NextRequest,
@@ -149,6 +150,15 @@ export async function handleMatchOptIn(
       }
     }
   }
+
+  await logEvent({
+    supabase,
+    eventType: action === "accept" ? "match_accepted" : "match_declined",
+    actorProfileId: profile.id,
+    matchId: match.id,
+    targetId: `${match.id}:${action}`,
+    metadata: { next_status: transition.nextMatchStatus },
+  });
 
   return NextResponse.json({ ok: true, status: transition.nextMatchStatus });
 }

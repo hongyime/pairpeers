@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { MatchesContent } from "./content";
 
-export const metadata = { title: "My matches — PairPeers" };
+export const metadata = { title: "My matches · PairPeers" };
 
 /** Shell prerenders statically; the match list reads the session (dynamic). */
 export default function MatchesPage() {

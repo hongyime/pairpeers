@@ -47,6 +47,12 @@ export async function GET(req: NextRequest) {
     .eq("profile_id", profile.id)
     .in("match_id", matchIds);
 
+  // Fetch match_dates for scheduling and check-in status
+  const { data: matchDates } = await supabase
+    .from("match_dates")
+    .select("match_id, status, scheduled_at, checked_in_at")
+    .in("match_id", matchIds);
+
   // Fetch questionnaire responses for rationale generation
   const allProfileIds = [...new Set([profile.id, ...partnerIds])];
   const { data: qResponses } = await supabase
@@ -105,6 +111,19 @@ export async function GET(req: NextRequest) {
 
     const cycleInfo = match.match_cycles as unknown as { started_at?: string } | null;
 
+    const dateRecord = (matchDates ?? []).find((d) => d.match_id === match.id) ?? null;
+    const date = dateRecord
+      ? {
+          status: dateRecord.status,
+          scheduled_at: dateRecord.scheduled_at,
+          checked_in_at: dateRecord.checked_in_at,
+        }
+      : {
+          status: "not_planned",
+          scheduled_at: null,
+          checked_in_at: null,
+        };
+
     return {
       id: match.id,
       status: match.status,
@@ -114,6 +133,7 @@ export async function GET(req: NextRequest) {
       partner_responded: Boolean(partnerResp),
       rationale,
       contact,
+      date,
       feedback: feedback
         ? {
             would_meet_again: feedback.would_meet_again,

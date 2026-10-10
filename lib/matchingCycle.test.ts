@@ -83,3 +83,46 @@ test("no-stable profile exercises the greedy max-weight fallback", () => {
   ];
   assert.deepEqual(greedyMaxWeightMatching(pairs).map((pair) => pair.aId + pair.bId), ["ab", "cd"]);
 });
+
+test("reciprocal non-binary eligibility allows open-pool pairing", () => {
+  const nb = person("nb", { identity: "nonbinary", seeking: "everyone" });
+  const pns = person("pns", { identity: "prefer_not", seeking: "everyone" });
+  const woman = person("w", { identity: "woman", seeking: "everyone" });
+
+  const result = runCycle([nb, pns, woman]);
+  // With 3 people all seeking everyone, irving or greedy fallback pairs two and leaves one
+  assert.equal(result.pairs.length, 1);
+  assert.equal(result.unmatched.length, 1);
+  assert.equal(result.eligiblePairCount, 3);
+});
+
+test("no accidental exclusions and no binary gender coercion", () => {
+  const nb = person("nb", { identity: "nonbinary", seeking: "everyone" });
+  const binarySeeker = person("bs", { identity: "man", seeking: "women" });
+  const manSeekingEveryone = person("m_open", { identity: "man", seeking: "everyone" });
+
+  // nb vs binarySeeker (seeking women): binarySeeker excludes nonbinary, so not eligible
+  const result1 = runCycle([nb, binarySeeker]);
+  assert.equal(result1.pairs.length, 0);
+  assert.deepEqual(result1.unmatched, ["bs", "nb"]);
+  assert.equal(result1.excludedPairCounts["identity_seeking"], 1);
+
+  // nb vs manSeekingEveryone: both reciprocally satisfy seeking: "everyone"
+  const result2 = runCycle([nb, manSeekingEveryone]);
+  assert.equal(result2.pairs.length, 1);
+  assert.deepEqual(result2.unmatched, []);
+});
+
+test("greedy fallback handles odd pool with non-binary member when irving has no stable solution", () => {
+  // Construct 4 participants with a preference cycle so Irving fails, including nonbinary participant
+  const nb = person("nb", { identity: "nonbinary", seeking: "everyone", interests: ["gaming", "art"] });
+  const p1 = person("p1", { identity: "woman", seeking: "everyone", interests: ["gaming"] });
+  const p2 = person("p2", { identity: "man", seeking: "everyone", interests: ["art"] });
+  const p3 = person("p3", { identity: "man", seeking: "everyone", interests: ["film"] });
+
+  const result = runCycle([nb, p1, p2, p3]);
+  assert.equal(result.pairs.length, 2);
+  assert.equal(result.unmatched.length, 0);
+  assert.ok(["stable-roommates", "greedy-fallback"].includes(result.algorithm));
+});
+

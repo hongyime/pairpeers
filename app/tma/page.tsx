@@ -8,7 +8,8 @@ function HomeContent() {
   return <>
     <p>Vouched, not swiped. Your Telegram session is ready.</p>
     <div className="actions" style={{ flexDirection: "column", gap: 10 }}>
-      <Link className="btn" href="/tma/questionnaire" onClick={() => haptic()}>Complete questionnaire</Link>
+      <Link className="btn" href="/tma/matches" onClick={() => haptic()}>View matches</Link>
+      <Link className="btn secondary" href="/tma/questionnaire" onClick={() => haptic()}>Complete questionnaire</Link>
       <Link className="btn secondary" href="/tma/invites" onClick={() => haptic()}>Manage invites</Link>
     </div>
   </>;

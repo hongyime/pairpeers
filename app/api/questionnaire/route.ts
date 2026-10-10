@@ -3,6 +3,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import { getProfileByTelegramId } from "@/lib/profiles";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { validateAnswers } from "@/lib/questionnaire";
+import { logEvent } from "@/lib/events";
 
 /**
  * Questionnaire persistence. Answers are stored in `questionnaire_responses`
@@ -87,5 +88,15 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
+
+  await logEvent({
+    supabase: auth.supabase,
+    eventType: "questionnaire_completed",
+    actorProfileId: auth.profile.id,
+    targetId: auth.profile.id,
+    metadata: { answers_count: Object.keys(validated.answers).length },
+  });
+
   return NextResponse.json({ ok: true });
 }
+
