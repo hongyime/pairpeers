@@ -116,7 +116,10 @@ export function sanitizeExportData(input: RawExportInput): AccountExportData {
   const vouches_received: AccountVouchExport[] = (input.vouchesReceived ?? []).map((v) => ({
     text: v.text,
     created_at: v.created_at,
-    voucher_name: v.voucher?.display_name ?? "A friend",
+    voucher_name:
+      v.voucher_name_approved === false
+        ? "A friend"
+        : (v.voucher?.display_name ?? "A friend"),
   }));
 
   const matches: AccountMatchExport[] = (input.matches ?? []).map((m) => ({

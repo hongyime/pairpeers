@@ -36,14 +36,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  let vouch: unknown;
+  let body: any;
   try {
-    ({ vouch } = await req.json());
+    body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
+
+  const vouch = body?.vouch;
+  const relationshipLabel = body?.relationship_label ?? body?.relationship ?? body?.relationshipLabel;
+  const voucherNameApproved = Boolean(body?.voucher_name_approved ?? body?.voucherNameApproved);
+
   if (typeof vouch !== "string") {
     return NextResponse.json({ error: "vouch_invalid" }, { status: 400 });
+  }
+  if (typeof relationshipLabel !== "string" || relationshipLabel.trim().length < 2) {
+    return NextResponse.json({ error: "relationship_invalid" }, { status: 400 });
   }
 
   const supabase = await createSupabaseServerClient();
@@ -56,7 +64,14 @@ export async function POST(req: NextRequest) {
 
   let result;
   try {
-    result = await createInvite(supabase, profile.id, profile.is_member, vouch);
+    result = await createInvite(
+      supabase,
+      profile.id,
+      profile.is_member,
+      vouch,
+      relationshipLabel,
+      voucherNameApproved
+    );
   } catch {
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }

@@ -71,7 +71,7 @@ export async function InvitesDashboard() {
           </>
         )}
         <p className="muted small">
-          <Link href="/">← Back home</Link>
+          <Link href="/vouches">Manage references & vouches</Link> · <Link href="/">Back home</Link>
         </p>
       </div>
     </main>
