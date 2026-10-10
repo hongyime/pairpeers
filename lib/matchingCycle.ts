@@ -368,3 +368,98 @@ export function runCycle(
 export function canonicalPairKey(aId: string, bId: string): string {
   return pairKey(aId, bId);
 }
+
+/**
+ * Parses MIN_PAIRS threshold from env or string, defaulting to 2.
+ * Invalid values (non-integers, <= 0) safely fall back to 2.
+ */
+export function parseMinPairs(envVal?: string | null): number {
+  const parsed = Number.parseInt(envVal ?? "2", 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 2;
+}
+
+/**
+ * Counts compatible pairs from the participant pool, respecting blocked pairs and hard filters.
+ */
+export function countCompatiblePairs(
+  participants: CycleParticipant[],
+  options?: { blockedPairKeys?: Set<string> } | Set<string>
+): number {
+  const blockedKeys = options instanceof Set ? options : options?.blockedPairKeys;
+  return buildPairs(participants, blockedKeys).pairs.length;
+}
+
+export type CompatiblePairsGuardResult =
+  | {
+      shouldSkip: false;
+      compatiblePairCount: number;
+      minPairs: number;
+    }
+  | {
+      shouldSkip: true;
+      compatiblePairCount: number;
+      minPairs: number;
+      audit: {
+        status: "skipped_min_pairs";
+        skip_reason: string;
+        min_pairs: number;
+        pool_size: number;
+        eligible_pair_count: number;
+        excluded_counts: Record<string, number>;
+        pairs: Array<{ a_id: string; b_id: string; a_score: number; b_score: number }>;
+        algorithm_path: string;
+        unmatched_member_ids: string[];
+        age_filter_skipped_member_ids: string[];
+        timestamp: string;
+      };
+    };
+
+/**
+ * Checks whether the count of compatible pairs meets the MIN_PAIRS threshold.
+ * If below threshold, returns shouldSkip: true and structured audit payload.
+ */
+export function checkCompatiblePairsGuard(
+  participants: CycleParticipant[],
+  options?: {
+    blockedPairKeys?: Set<string>;
+    minPairs?: number;
+    excluded?: Record<string, number>;
+    now?: string;
+  }
+): CompatiblePairsGuardResult {
+  const minPairs = options?.minPairs ?? parseMinPairs(process.env.MIN_PAIRS);
+  const blockedKeys = options?.blockedPairKeys;
+  const { pairs: candidatePairs, ageSkippedIds, excludedPairCounts } = buildPairs(
+    participants,
+    blockedKeys
+  );
+
+  if (candidatePairs.length < minPairs) {
+    const now = options?.now ?? new Date().toISOString();
+    return {
+      shouldSkip: true,
+      compatiblePairCount: candidatePairs.length,
+      minPairs,
+      audit: {
+        status: "skipped_min_pairs",
+        skip_reason: "compatible_pairs_below_minimum",
+        min_pairs: minPairs,
+        pool_size: participants.length,
+        eligible_pair_count: candidatePairs.length,
+        excluded_counts: { ...(options?.excluded ?? {}), ...excludedPairCounts },
+        pairs: [],
+        algorithm_path: "skipped",
+        unmatched_member_ids: participants.map((p) => p.id),
+        age_filter_skipped_member_ids: [...ageSkippedIds].sort(),
+        timestamp: now,
+      },
+    };
+  }
+
+  return {
+    shouldSkip: false,
+    compatiblePairCount: candidatePairs.length,
+    minPairs,
+  };
+}
+

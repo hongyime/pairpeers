@@ -14,3 +14,10 @@
   4. Account retention: RPC anonymize_profile() tombstones with scrambled negative telegram_id and wipes questionnaire answers without cascade-deleting partner match history.
   5. Founder auth: unified requireFounder() helper; AdminLayout renders static shell with Suspense-wrapped founder gate for Turbopack cacheComponents compatibility.
 
+- 2026-10-10: Launch blockers complete (Antigravity). Migrations 0013 (vouch controls), 0014 (adult consent), 0015 (blocks), 0016 (safety appeals), 0017 (date planning) shipped. Key architectural decisions:
+  1. Vouch consent & controls: atomic invite redemption propagates relationship label; voucher name hidden by default until approved; vouchee can hide/remove vouches.
+  2. Adult verification & terms: self-declaration 18+ checkbox required on questionnaire; timestamps set server-side; concise terms and privacy routes published with zero em dashes.
+  3. Reciprocal diet & religion: diet hard filter treats 'none' as wildcard and enforces reciprocal must-have compatibility; optional Track A religion question and Track B religion preference with must-have dealbreaker semantics.
+  4. Block & appeal: global pair exclusion across all cycles; banned users retain appeal submission capability with profile + IP rate limiting and instant founder Telegram alert.
+  5. Date planning: up to 3 slots proposed with curated venue picker + custom venue; only non-proposer can select; Telegram alerts on proposal and confirmation; existing check-in loop reused.
+  6. Compatible-pair cycle guard: MIN_PAIRS threshold (default 2) skips matching when compatible pairs fall below minimum even if pool heads exceed MATCH_MIN_POOL; audit records skipped_min_pairs.

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireFounder } from "@/lib/adminAuth";
 import { sendTelegramMessage } from "@/lib/botNotify";
-import { runCycle, type CycleAnswers, type CycleParticipant } from "@/lib/matchingCycle";
+import {
+  checkCompatiblePairsGuard,
+  parseMinPairs,
+  runCycle,
+  type CycleAnswers,
+  type CycleParticipant,
+} from "@/lib/matchingCycle";
 import { getProfileByTelegramId } from "@/lib/profiles";
 import { validateAnswers } from "@/lib/questionnaire";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
@@ -10,9 +16,10 @@ import { getSweepNudgeText } from "@/lib/matchDates";
 import { loadBlockedPairKeys } from "@/lib/matchBlocks";
 
 type Audit = {
-  status?: "completed" | "skipped_min_pool";
+  status?: "completed" | "skipped_min_pool" | "skipped_min_pairs";
   skip_reason?: string;
   min_pool_size?: number;
+  min_pairs?: number;
   pool_size?: number;
   eligible_pair_count?: number;
   excluded_counts?: Record<string, number>;
@@ -181,6 +188,39 @@ export async function POST(req: NextRequest) {
     });
     return responseForCycle(skippedCycle.id, audit);
   }
+
+  // Compatible-pair cycle guard:
+  // If compatible pairs < MIN_PAIRS (env, default 2), skip independently of MATCH_MIN_POOL
+  const guard = checkCompatiblePairsGuard(participants, {
+    blockedPairKeys,
+    minPairs: parseMinPairs(process.env.MIN_PAIRS),
+    excluded,
+  });
+
+  if (guard.shouldSkip) {
+    const { audit } = guard;
+    const { data: skippedCycle, error: skipError } = await supabase
+      .from("match_cycles")
+      .insert({ audit, closed_at: audit.timestamp })
+      .select("id, audit")
+      .single();
+    if (skipError || !skippedCycle) return NextResponse.json({ error: "db_error" }, { status: 500 });
+    await logEvent({
+      supabase,
+      eventType: "cycle_run",
+      cycleId: skippedCycle.id,
+      targetId: skippedCycle.id,
+      metadata: {
+        status: audit.status,
+        pool_size: audit.pool_size,
+        eligible_pair_count: audit.eligible_pair_count,
+        min_pairs: audit.min_pairs,
+        pair_count: 0,
+      },
+    });
+    return responseForCycle(skippedCycle.id, audit);
+  }
+
   const result = runCycle(participants, { blockedPairKeys });
   const now = new Date().toISOString();
   const audit: Audit = {

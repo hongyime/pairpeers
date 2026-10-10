@@ -86,8 +86,9 @@
   2. Item 2: Adult verification + terms/consent (migration 0014, adult/terms profile columns, questionnaire form checkbox, /terms and /privacy pages) — completed in 8e1307c.
   3. Item 3: Diet hard filter (reciprocal diet filter in matchingCycle.ts, optional religion questions on about and want tracks) — completed in a351865.
   4. Item 4: Block + appeal (migrations 0015 and 0016, matchBlocks.ts, /api/matches/[id]/block, global pair exclusion in matcher, safety_appeals table, /api/appeals, founder safety queue extension) — completed in 0ece6e0.
-  5. Item 5: Date planning (migration 0017, match_dates extension, lib/matchDates.ts, /api/matches/[id]/date route, 3-slot date picker UI, curated venue choices, Telegram notifications) — completed.
-  6. Item 6: Compatible-pair cycle guard (lib/matchingCycle.ts pair counting helper, MIN_PAIRS check in /api/admin/match/run) — in progress.
-- Verification status: 91 unit tests passing (`npm test`), full build passing cleanly (`npm run build`, 43 routes). Zero em dashes in user copy.
+  5. Item 5: Date planning (migration 0017, match_dates extension, lib/matchDates.ts, /api/matches/[id]/date route, 3-slot date picker UI, curated venue choices, Telegram notifications) — completed in e968f5b.
+  6. Item 6: Compatible-pair cycle guard (lib/matchingCycle.ts pair counting and guard helper, MIN_PAIRS check in /api/admin/match/run, audit recording for skipped_min_pairs) — completed.
+- Verification status: All 96 unit tests passing (`npm test`), full build passing cleanly (`npm run build`, 43 routes). Zero em dashes in user copy. Service-role-only RLS on all new tables.
+
 
 
