@@ -83,7 +83,9 @@ export async function MatchesContent() {
   // Fetch match_dates for date coordination status
   const { data: matchDates } = await supabase
     .from("match_dates")
-    .select("match_id, status, scheduled_at, checked_in_at")
+    .select(
+      "match_id, status, scheduled_at, checked_in_at, proposer_id, slot_1, slot_2, slot_3, venue_text, selected_slot, proposed_at, selected_at"
+    )
     .in("match_id", matchIds);
 
   // Fetch questionnaire responses for rationale generation
@@ -154,6 +156,7 @@ export async function MatchesContent() {
               <MatchItem
                 key={match.id}
                 id={match.id}
+                callerProfileId={profile.id}
                 initialStatus={match.status as "pending" | "accepted" | "declined" | "expired"}
                 initialMyResponse={myResp as "accepted" | "declined" | null}
                 rationale={rationale}
@@ -172,6 +175,14 @@ export async function MatchesContent() {
                         status: dateRecord.status,
                         scheduled_at: dateRecord.scheduled_at,
                         checked_in_at: dateRecord.checked_in_at,
+                        proposer_id: dateRecord.proposer_id ?? null,
+                        slot_1: dateRecord.slot_1 ?? null,
+                        slot_2: dateRecord.slot_2 ?? null,
+                        slot_3: dateRecord.slot_3 ?? null,
+                        venue_text: dateRecord.venue_text ?? null,
+                        selected_slot: dateRecord.selected_slot ?? null,
+                        proposed_at: dateRecord.proposed_at ?? null,
+                        selected_at: dateRecord.selected_at ?? null,
                       }
                     : null
                 }

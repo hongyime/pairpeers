@@ -70,6 +70,7 @@ export type RawExportInput = {
   vouchesReceived?: Array<{
     text: string;
     created_at: string;
+    voucher_name_approved?: boolean;
     voucher?: { display_name: string | null } | null;
   }> | null;
   matches?: Array<{
@@ -244,7 +245,7 @@ export async function exportAccountData(
   // 5. Vouches received
   const { data: vouchesReceived } = await supabase
     .from("vouches")
-    .select("text, created_at, voucher:profiles!vouches_voucher_id_fkey(display_name)")
+    .select("text, created_at, voucher_name_approved, voucher:profiles!vouches_voucher_id_fkey(display_name)")
     .eq("vouchee_id", profileId);
 
   // 6. Matches

@@ -82,10 +82,12 @@
 - Branch `agy/blockers` checked out from main at 22222a5.
 - Baseline verified: all 65 unit tests pass, npm run build completes cleanly (38 routes).
 - Implementation plan:
-  1. Item 1: Vouch consent and controls (migration 0013, lib/vouches.ts, lib/invites.ts, API route /api/vouches/[id], invite form & vouches management UI).
-  2. Item 2: Adult verification + terms/consent (migration 0014, adult/terms profile columns, questionnaire form checkbox, /terms and /privacy pages).
-  3. Item 3: Diet hard filter (reciprocal diet filter in matchingCycle.ts, optional religion questions on about and want tracks).
-  4. Item 4: Block + appeal (migrations 0015 and 0016, matchBlocks.ts, /api/matches/[id]/block, global pair exclusion in matcher, safety_appeals table, /api/appeals, founder safety queue extension).
-  5. Item 5: Date planning (migration 0017, match_dates extension, lib/matchDates.ts, /api/matches/[id]/date route, 3-slot date picker UI, Telegram notifications).
-  6. Item 6: Compatible-pair cycle guard (lib/matchingCycle.ts pair counting helper, MIN_PAIRS check in /api/admin/match/run).
+  1. Item 1: Vouch consent and controls (migration 0013, lib/vouches.ts, lib/invites.ts, API route /api/vouches/[id], invite form & vouches management UI) — completed in 3a7a38f.
+  2. Item 2: Adult verification + terms/consent (migration 0014, adult/terms profile columns, questionnaire form checkbox, /terms and /privacy pages) — completed in 8e1307c.
+  3. Item 3: Diet hard filter (reciprocal diet filter in matchingCycle.ts, optional religion questions on about and want tracks) — completed in a351865.
+  4. Item 4: Block + appeal (migrations 0015 and 0016, matchBlocks.ts, /api/matches/[id]/block, global pair exclusion in matcher, safety_appeals table, /api/appeals, founder safety queue extension) — completed in 0ece6e0.
+  5. Item 5: Date planning (migration 0017, match_dates extension, lib/matchDates.ts, /api/matches/[id]/date route, 3-slot date picker UI, curated venue choices, Telegram notifications) — completed.
+  6. Item 6: Compatible-pair cycle guard (lib/matchingCycle.ts pair counting helper, MIN_PAIRS check in /api/admin/match/run) — in progress.
+- Verification status: 91 unit tests passing (`npm test`), full build passing cleanly (`npm run build`, 43 routes). Zero em dashes in user copy.
+
 
