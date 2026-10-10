@@ -19,9 +19,9 @@ const raleway = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "PairPeers · Vouched, not swiped.",
+  title: "PairPeers · Vouched, Not swiped.",
   description:
-    "Vouched, not swiped. Invite only dating through friends who know you best.",
+    "Vouched, Not swiped. Invite only dating through friends who know you best.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

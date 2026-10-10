@@ -6,7 +6,7 @@ import { TmaShell, useTma } from "./tma-shell";
 function HomeContent() {
   const { haptic } = useTma();
   return <>
-    <p>Vouched, not swiped. Your Telegram session is ready.</p>
+    <p>Vouched, Not swiped. Your Telegram session is ready.</p>
     <div className="actions" style={{ flexDirection: "column", gap: 10 }}>
       <Link className="btn" href="/tma/matches" onClick={() => haptic()}>View matches</Link>
       <Link className="btn secondary" href="/tma/questionnaire" onClick={() => haptic()}>Complete questionnaire</Link>

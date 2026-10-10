@@ -8,7 +8,7 @@ export default function Home() {
           <h1>
             Vouched,
             <br />
-            not swiped.
+            Not swiped.
           </h1>
           <p className="hero-lede">
             Invite-only dating through friends who know you best.
@@ -62,7 +62,7 @@ export default function Home() {
           <div className="trust-grid">
             <article className="trust-card">
               <h3>The algorithm</h3>
-              <strong>Stable matching. The same math behind medical residency placements.</strong>
+              <strong>Stable matching. Everyone gets paired fairly, no endless swiping.</strong>
               <p>It finds a pairing that works for both people. Not a popularity contest.</p>
             </article>
             <article className="trust-card">
@@ -85,7 +85,7 @@ export default function Home() {
       <footer className="site-footer">
         <div className="page-shell">
           <span className="footer-brand">PairPeers</span>
-          <span className="muted small">© 2026 · Vouched, not swiped.</span>
+          <span className="muted small">© 2026 · Vouched, Not swiped.</span>
         </div>
       </footer>
     </main>

@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "PairPeers · Vouched, not swiped.",
+    name: "PairPeers · Vouched, Not swiped.",
     short_name: "PairPeers",
     description:
-      "Vouched, not swiped. Invite only dating through friends who know you best.",
+      "Vouched, Not swiped. Invite only dating through friends who know you best.",
     start_url: "/",
     display: "standalone",
     background_color: "#FDFBF9",
