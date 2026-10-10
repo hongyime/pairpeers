@@ -9,15 +9,18 @@ export type CycleAnswers = {
   diet: string;
   smokes: string;
   kids: string;
+  religion?: string;
   seeking: string;
   age_bracket: string;
   age_min: string;
   age_max: string;
   green_flags: string[];
+  diet_pref?: string;
   smoking_pref: string;
   kids_pref: string;
   energy_pref: string;
   texting_pref: string;
+  religion_pref?: string;
   importance: Record<string, Importance>;
 };
 
@@ -130,6 +133,22 @@ function ageCompatible(
   return { ok: lo <= max && hi >= min, skipped: false };
 }
 
+export function dietCompatible(aDiet?: string, bDiet?: string): boolean {
+  const a = aDiet ?? "none";
+  const b = bDiet ?? "none";
+  return a === "none" || b === "none" || a === b;
+}
+
+export function religionCompatible(seekerPref?: string, candidateReligion?: string): boolean {
+  if (!seekerPref || seekerPref === "doesnt_matter" || seekerPref === "prefer_not_to_say") {
+    return true;
+  }
+  if (!candidateReligion || candidateReligion === "prefer_not_to_say") {
+    return true;
+  }
+  return seekerPref === candidateReligion;
+}
+
 /**
  * Track B must-haves are hard filters. Age uses coarse brackets (privacy):
  * the candidate's bracket must overlap the seeker's preferred range.
@@ -141,9 +160,21 @@ export function passesHardFilters(a: CycleParticipant, b: CycleParticipant): { o
   if (!seekingIncludes(a.answers.seeking, b.answers.identity)) reasons.push("identity_seeking");
 
   const aImportance = a.answers.importance;
-  if (aImportance.smoking_pref === "must_have" && !smokingCompatible(a.answers.smoking_pref, b.answers.smokes)) reasons.push("must_have_smoking");
-  if (aImportance.kids_pref === "must_have" && !kidsCompatible(a.answers.kids_pref, b.answers.kids, a.answers.kids)) reasons.push("must_have_kids");
-  if (aImportance.energy_pref === "must_have" && !energyCompatible(a.answers.energy_pref, b.answers, a.answers)) reasons.push("must_have_energy");
+  if ((aImportance.diet === "must_have" || aImportance.diet_pref === "must_have") && !dietCompatible(a.answers.diet, b.answers.diet)) {
+    reasons.push("must_have_diet");
+  }
+  if (aImportance.religion_pref === "must_have" && !religionCompatible(a.answers.religion_pref, b.answers.religion)) {
+    reasons.push("must_have_religion");
+  }
+  if (aImportance.smoking_pref === "must_have" && !smokingCompatible(a.answers.smoking_pref, b.answers.smokes)) {
+    reasons.push("must_have_smoking");
+  }
+  if (aImportance.kids_pref === "must_have" && !kidsCompatible(a.answers.kids_pref, b.answers.kids, a.answers.kids)) {
+    reasons.push("must_have_kids");
+  }
+  if (aImportance.energy_pref === "must_have" && !energyCompatible(a.answers.energy_pref, b.answers, a.answers)) {
+    reasons.push("must_have_energy");
+  }
   return { ok: reasons.length === 0, ageSkipped: age.skipped, reasons };
 }
 
@@ -179,12 +210,18 @@ export function directionalScore(seeker: CycleParticipant, candidate: CycleParti
     [alignment(a.chronotype, b.chronotype), importance(a, "green_flags")],
     [alignment(a.recharge, b.recharge), importance(a, "energy_pref")],
     [alignment(a.conflict, b.conflict), importance(a, "green_flags")],
-    [a.diet === "none" || b.diet === "none" || a.diet === b.diet ? 1 : 0, importance(a, "green_flags")],
+    [dietCompatible(a.diet, b.diet) ? 1 : 0, importance(a, a.importance?.diet_pref ? "diet_pref" : a.importance?.diet ? "diet" : "green_flags")],
     [smokingScore(a.smoking_pref, b.smokes), importance(a, "smoking_pref")],
     [kidsScore(a.kids_pref, b.kids, a.kids), importance(a, "kids_pref")],
     [a.energy_pref === "doesnt_matter" ? 0.8 : energyCompatible(a.energy_pref, b, a) ? 1 : 0, importance(a, "energy_pref")],
     [textingScore(a.texting_pref, b.texting_pref), importance(a, "texting_pref")],
   ];
+  if (a.religion_pref && a.religion_pref !== "doesnt_matter") {
+    dimensions.push([
+      religionCompatible(a.religion_pref, b.religion) ? 1 : 0,
+      importance(a, "religion_pref"),
+    ]);
+  }
   const totalWeight = dimensions.reduce((sum, [, weight]) => sum + weight, 0);
   const weighted = dimensions.reduce((sum, [value, weight]) => sum + value * weight, 0);
   return Math.round((weighted / totalWeight) * 100);

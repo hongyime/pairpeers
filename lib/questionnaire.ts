@@ -16,7 +16,7 @@ export const IMPORTANCE_OPTIONS: ReadonlyArray<{
   value: Importance;
   label: string;
 }> = [
-  { value: "must_have", label: "Must-have" },
+  { value: "must_have", label: "Dealbreaker" },
   { value: "important", label: "Important" },
   { value: "nice_to_have", label: "Nice to have" },
 ];
@@ -149,6 +149,23 @@ export const QUESTIONS: QuestionDef[] = [
     ["probably_not", "Probably not"],
     ["no", "No"],
   ]),
+  single(
+    "religion",
+    "about",
+    "Your religion or worldview",
+    [
+      ["prefer_not_to_say", "Prefer not to say"],
+      ["none", "None / Atheist / Agnostic"],
+      ["buddhist", "Buddhist"],
+      ["christian", "Christian"],
+      ["muslim", "Muslim"],
+      ["hindu", "Hindu"],
+      ["taoist", "Taoist"],
+      ["other", "Other"],
+    ],
+    false,
+    "Optional"
+  ),
   {
     key: "note",
     track: "about",
@@ -194,6 +211,13 @@ export const QUESTIONS: QuestionDef[] = [
     1,
     "Pick 3"
   ),
+  single("diet_pref", "want", "Diet preference for a partner", [
+    ["none", "Doesn't matter / Any"],
+    ["halal", "Halal"],
+    ["vegetarian", "Vegetarian"],
+    ["no_pork", "No pork"],
+    ["no_beef", "No beef"],
+  ], false, "Optional"),
   single("smoking_pref", "want", "Smoking is…", [
     ["hard_no", "A hard no"],
     ["socially_ok", "Socially is fine"],
@@ -213,6 +237,17 @@ export const QUESTIONS: QuestionDef[] = [
     ["checkins", "Regular check-ins"],
     ["silence", "Comfortable silence"],
   ]),
+  single("religion_pref", "want", "Partner religion preference", [
+    ["doesnt_matter", "Doesn't matter"],
+    ["prefer_not_to_say", "Prefer not to say / Any"],
+    ["none", "None / Atheist / Agnostic"],
+    ["buddhist", "Buddhist"],
+    ["christian", "Christian"],
+    ["muslim", "Muslim"],
+    ["hindu", "Hindu"],
+    ["taoist", "Taoist"],
+    ["other", "Other"],
+  ], false, "Optional"),
 ];
 
 export const QUESTION_MAP: Record<string, QuestionDef> = Object.fromEntries(
@@ -224,10 +259,13 @@ export const IMPORTANCE_KEYS = [
   "seeking",
   "age_range",
   "green_flags",
+  "diet_pref",
+  "diet",
   "smoking_pref",
   "kids_pref",
   "energy_pref",
   "texting_pref",
+  "religion_pref",
 ] as const;
 
 const IMPORTANCE_SET = new Set<string>(["must_have", "important", "nice_to_have"]);

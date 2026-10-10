@@ -86,7 +86,9 @@ function TrackSection({
           )}
           {q.track === "want" && q.kind !== "text" && (
             <div className="q-importance">
-              <span className="q-importance-label">How much does this matter?</span>
+              <span className="q-importance-label">
+                How much does this matter? <span className="q-hint">Dealbreakers are hard filters</span>
+              </span>
               <div className="opt-grid" role="group" aria-label={`Importance of ${q.label}`}>
                 {IMPORTANCE_OPTIONS.map((imp) => {
                   const ikey = q.key === "age_min" || q.key === "age_max" ? "age_range" : q.key;
