@@ -4,6 +4,14 @@ export type TmaMatchDate = {
   status: "not_planned" | "scheduled" | "happened" | "skipped";
   scheduled_at: string | null;
   checked_in_at?: string | null;
+  proposer_id?: string | null;
+  slot_1?: string | null;
+  slot_2?: string | null;
+  slot_3?: string | null;
+  venue_text?: string | null;
+  selected_slot?: string | null;
+  proposed_at?: string | null;
+  selected_at?: string | null;
 };
 
 export type TmaMatchFeedback = {

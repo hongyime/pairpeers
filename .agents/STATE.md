@@ -77,3 +77,18 @@
   8. Item 8: Mini App matches parity (`app/tma/matches/page.tsx`, `app/tma/page.tsx` entry, `lib/tmaMatches.ts` + tests) with inline opt-in, date check-ins, contact reveal, feedback, and Telegram haptics.
   9. Item 9: Account anonymization & retention (`0012_account_retention.sql`, `lib/accountData.ts`, `app/api/account/export/route.ts`, `app/api/account/delete/route.ts`, `docs/data-retention.md`, `SECURITY.md` update). Tombstone anonymization preserves partner match histories.
 - Verification: All 65 unit tests pass (`npm test`). Full production build (`npm run build`) passes cleanly with 38 generated routes and 0 errors. Zero em dashes in user copy. Service-role-only RLS on all new tables.
+
+## 2026-10-10 - PairPeers launch blockers build (Antigravity)
+- Branch `agy/blockers` checked out from main at 22222a5.
+- Baseline verified: all 65 unit tests pass, npm run build completes cleanly (38 routes).
+- Implementation plan:
+  1. Item 1: Vouch consent and controls (migration 0013, lib/vouches.ts, lib/invites.ts, API route /api/vouches/[id], invite form & vouches management UI) — completed in 3a7a38f.
+  2. Item 2: Adult verification + terms/consent (migration 0014, adult/terms profile columns, questionnaire form checkbox, /terms and /privacy pages) — completed in 8e1307c.
+  3. Item 3: Diet hard filter (reciprocal diet filter in matchingCycle.ts, optional religion questions on about and want tracks) — completed in a351865.
+  4. Item 4: Block + appeal (migrations 0015 and 0016, matchBlocks.ts, /api/matches/[id]/block, global pair exclusion in matcher, safety_appeals table, /api/appeals, founder safety queue extension) — completed in 0ece6e0.
+  5. Item 5: Date planning (migration 0017, match_dates extension, lib/matchDates.ts, /api/matches/[id]/date route, 3-slot date picker UI, curated venue choices, Telegram notifications) — completed in e968f5b.
+  6. Item 6: Compatible-pair cycle guard (lib/matchingCycle.ts pair counting and guard helper, MIN_PAIRS check in /api/admin/match/run, audit recording for skipped_min_pairs) — completed.
+- Verification status: All 96 unit tests passing (`npm test`), full build passing cleanly (`npm run build`, 43 routes). Zero em dashes in user copy. Service-role-only RLS on all new tables.
+
+
+

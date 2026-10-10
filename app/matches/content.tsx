@@ -22,11 +22,29 @@ export async function MatchesContent() {
   if (!profile?.is_member) redirect("/");
 
   // Fetch matches (scores intentionally excluded)
-  const { data: matches } = await supabase
-    .from("matches")
-    .select("id, status, a_id, b_id, accepted_at, match_cycles(started_at)")
-    .or(`a_id.eq.${profile.id},b_id.eq.${profile.id}`)
-    .order("started_at", { foreignTable: "match_cycles", ascending: false });
+  const [{ data: rawMatches }, blockedPartnerIds] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("id, status, a_id, b_id, accepted_at, match_cycles(started_at)")
+      .or(`a_id.eq.${profile.id},b_id.eq.${profile.id}`)
+      .order("started_at", { foreignTable: "match_cycles", ascending: false }),
+    (async () => {
+      const { data: blocks } = await supabase
+        .from("match_blocks")
+        .select("user_a_id, user_b_id")
+        .or(`user_a_id.eq.${profile.id},user_b_id.eq.${profile.id}`);
+      const set = new Set<string>();
+      for (const b of blocks ?? []) {
+        set.add(b.user_a_id === profile.id ? b.user_b_id : b.user_a_id);
+      }
+      return set;
+    })().catch(() => new Set<string>()),
+  ]);
+
+  const matches = (rawMatches ?? []).filter((m) => {
+    const partnerId = m.a_id === profile.id ? m.b_id : m.a_id;
+    return !blockedPartnerIds.has(partnerId);
+  });
 
   if (!matches || matches.length === 0) {
     return (
@@ -39,7 +57,7 @@ export async function MatchesContent() {
             paired, your introduction will appear here.
           </p>
           <p className="muted small">
-            <Link href="/">← Back home</Link>
+            <Link href="/">Back home</Link>
           </p>
         </div>
       </main>
@@ -65,7 +83,9 @@ export async function MatchesContent() {
   // Fetch match_dates for date coordination status
   const { data: matchDates } = await supabase
     .from("match_dates")
-    .select("match_id, status, scheduled_at, checked_in_at")
+    .select(
+      "match_id, status, scheduled_at, checked_in_at, proposer_id, slot_1, slot_2, slot_3, venue_text, selected_slot, proposed_at, selected_at"
+    )
     .in("match_id", matchIds);
 
   // Fetch questionnaire responses for rationale generation
@@ -136,6 +156,7 @@ export async function MatchesContent() {
               <MatchItem
                 key={match.id}
                 id={match.id}
+                callerProfileId={profile.id}
                 initialStatus={match.status as "pending" | "accepted" | "declined" | "expired"}
                 initialMyResponse={myResp as "accepted" | "declined" | null}
                 rationale={rationale}
@@ -154,6 +175,14 @@ export async function MatchesContent() {
                         status: dateRecord.status,
                         scheduled_at: dateRecord.scheduled_at,
                         checked_in_at: dateRecord.checked_in_at,
+                        proposer_id: dateRecord.proposer_id ?? null,
+                        slot_1: dateRecord.slot_1 ?? null,
+                        slot_2: dateRecord.slot_2 ?? null,
+                        slot_3: dateRecord.slot_3 ?? null,
+                        venue_text: dateRecord.venue_text ?? null,
+                        selected_slot: dateRecord.selected_slot ?? null,
+                        proposed_at: dateRecord.proposed_at ?? null,
+                        selected_at: dateRecord.selected_at ?? null,
                       }
                     : null
                 }

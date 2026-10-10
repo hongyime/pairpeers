@@ -50,7 +50,9 @@ export async function GET(req: NextRequest) {
   // Fetch match_dates for scheduling and check-in status
   const { data: matchDates } = await supabase
     .from("match_dates")
-    .select("match_id, status, scheduled_at, checked_in_at")
+    .select(
+      "match_id, status, scheduled_at, checked_in_at, proposer_id, slot_1, slot_2, slot_3, venue_text, selected_slot, proposed_at, selected_at"
+    )
     .in("match_id", matchIds);
 
   // Fetch questionnaire responses for rationale generation
@@ -117,11 +119,27 @@ export async function GET(req: NextRequest) {
           status: dateRecord.status,
           scheduled_at: dateRecord.scheduled_at,
           checked_in_at: dateRecord.checked_in_at,
+          proposer_id: dateRecord.proposer_id ?? null,
+          slot_1: dateRecord.slot_1 ?? null,
+          slot_2: dateRecord.slot_2 ?? null,
+          slot_3: dateRecord.slot_3 ?? null,
+          venue_text: dateRecord.venue_text ?? null,
+          selected_slot: dateRecord.selected_slot ?? null,
+          proposed_at: dateRecord.proposed_at ?? null,
+          selected_at: dateRecord.selected_at ?? null,
         }
       : {
           status: "not_planned",
           scheduled_at: null,
           checked_in_at: null,
+          proposer_id: null,
+          slot_1: null,
+          slot_2: null,
+          slot_3: null,
+          venue_text: null,
+          selected_slot: null,
+          proposed_at: null,
+          selected_at: null,
         };
 
     return {

@@ -24,9 +24,22 @@ type InviteItem = {
   inviter?: { id: string; display_name: string | null; telegram_username: string | null; is_banned?: boolean };
 };
 
+type AppealItem = {
+  id: string;
+  profile_id: string;
+  reason: string;
+  details: string | null;
+  status: "pending" | "reviewing" | "approved" | "rejected";
+  review_notes: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  profile?: { id: string; display_name: string | null; telegram_username: string | null; is_banned?: boolean };
+};
+
 export function SafetyQueue() {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [invites, setInvites] = useState<InviteItem[]>([]);
+  const [appeals, setAppeals] = useState<AppealItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +61,7 @@ export function SafetyQueue() {
       const json = await res.json();
       setReports(json.reports ?? []);
       setInvites(json.invites ?? []);
+      setAppeals(json.appeals ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -96,6 +110,27 @@ export function SafetyQueue() {
         }),
       });
       if (!res.ok) throw new Error("Could not update member ban status");
+      await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleAppealReview(appealId: string, newStatus: "approved" | "rejected") {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/safety", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          appeal_id: appealId,
+          status: newStatus,
+          unban_profile: newStatus === "approved",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to review appeal");
       await load();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -350,6 +385,94 @@ export function SafetyQueue() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Member Appeals Section */}
+      <div className="card" style={{ padding: "1.25rem" }}>
+        <h2>Member Appeals</h2>
+        <p className="muted small">Review ban appeals filed by members. Approving an appeal automatically unbans the member.</p>
+
+        {appeals.length === 0 ? (
+          <p className="muted small" style={{ marginTop: "1rem" }}>No member appeals on record.</p>
+        ) : (
+          <div style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
+            {appeals.map((app) => (
+              <div
+                key={app.id}
+                style={{
+                  padding: "1rem",
+                  border: "1px solid var(--line)",
+                  borderRadius: "6px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    <strong>{app.profile?.display_name ?? "Member"}</strong>
+                    <span className="muted small">@{app.profile?.telegram_username ?? "unknown"}</span>
+                    <span
+                      style={{
+                        padding: "0.15rem 0.4rem",
+                        borderRadius: "4px",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        background:
+                          app.status === "pending"
+                            ? "#fef3c7"
+                            : app.status === "approved"
+                            ? "#dcfce7"
+                            : "#fee2e2",
+                        color:
+                          app.status === "pending"
+                            ? "#92400e"
+                            : app.status === "approved"
+                            ? "#166534"
+                            : "#991b1b",
+                      }}
+                    >
+                      {app.status}
+                    </span>
+                    {app.profile?.is_banned && (
+                      <span style={{ color: "#b91c1c", fontSize: "0.75rem", fontWeight: 600 }}>Currently banned</span>
+                    )}
+                  </div>
+                  <p style={{ marginTop: "0.5rem", fontWeight: 500 }}>Reason: {app.reason}</p>
+                  {app.details && <p className="small muted" style={{ marginTop: "0.25rem" }}>Details: {app.details}</p>}
+                  <p className="muted small" style={{ marginTop: "0.5rem" }}>
+                    Filed on {new Date(app.created_at).toLocaleString()}
+                  </p>
+                </div>
+
+                {app.status === "pending" && (
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      className="chip-btn"
+                      style={{ color: "#166534" }}
+                      disabled={actionLoading}
+                      onClick={() => handleAppealReview(app.id, "approved")}
+                    >
+                      Approve & unban
+                    </button>
+                    <button
+                      type="button"
+                      className="chip-btn"
+                      style={{ color: "#991b1b" }}
+                      disabled={actionLoading}
+                      onClick={() => handleAppealReview(app.id, "rejected")}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

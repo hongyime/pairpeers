@@ -9,15 +9,18 @@ export type CycleAnswers = {
   diet: string;
   smokes: string;
   kids: string;
+  religion?: string;
   seeking: string;
   age_bracket: string;
   age_min: string;
   age_max: string;
   green_flags: string[];
+  diet_pref?: string;
   smoking_pref: string;
   kids_pref: string;
   energy_pref: string;
   texting_pref: string;
+  religion_pref?: string;
   importance: Record<string, Importance>;
 };
 
@@ -130,6 +133,22 @@ function ageCompatible(
   return { ok: lo <= max && hi >= min, skipped: false };
 }
 
+export function dietCompatible(aDiet?: string, bDiet?: string): boolean {
+  const a = aDiet ?? "none";
+  const b = bDiet ?? "none";
+  return a === "none" || b === "none" || a === b;
+}
+
+export function religionCompatible(seekerPref?: string, candidateReligion?: string): boolean {
+  if (!seekerPref || seekerPref === "doesnt_matter" || seekerPref === "prefer_not_to_say") {
+    return true;
+  }
+  if (!candidateReligion || candidateReligion === "prefer_not_to_say") {
+    return true;
+  }
+  return seekerPref === candidateReligion;
+}
+
 /**
  * Track B must-haves are hard filters. Age uses coarse brackets (privacy):
  * the candidate's bracket must overlap the seeker's preferred range.
@@ -141,9 +160,21 @@ export function passesHardFilters(a: CycleParticipant, b: CycleParticipant): { o
   if (!seekingIncludes(a.answers.seeking, b.answers.identity)) reasons.push("identity_seeking");
 
   const aImportance = a.answers.importance;
-  if (aImportance.smoking_pref === "must_have" && !smokingCompatible(a.answers.smoking_pref, b.answers.smokes)) reasons.push("must_have_smoking");
-  if (aImportance.kids_pref === "must_have" && !kidsCompatible(a.answers.kids_pref, b.answers.kids, a.answers.kids)) reasons.push("must_have_kids");
-  if (aImportance.energy_pref === "must_have" && !energyCompatible(a.answers.energy_pref, b.answers, a.answers)) reasons.push("must_have_energy");
+  if ((aImportance.diet === "must_have" || aImportance.diet_pref === "must_have") && !dietCompatible(a.answers.diet, b.answers.diet)) {
+    reasons.push("must_have_diet");
+  }
+  if (aImportance.religion_pref === "must_have" && !religionCompatible(a.answers.religion_pref, b.answers.religion)) {
+    reasons.push("must_have_religion");
+  }
+  if (aImportance.smoking_pref === "must_have" && !smokingCompatible(a.answers.smoking_pref, b.answers.smokes)) {
+    reasons.push("must_have_smoking");
+  }
+  if (aImportance.kids_pref === "must_have" && !kidsCompatible(a.answers.kids_pref, b.answers.kids, a.answers.kids)) {
+    reasons.push("must_have_kids");
+  }
+  if (aImportance.energy_pref === "must_have" && !energyCompatible(a.answers.energy_pref, b.answers, a.answers)) {
+    reasons.push("must_have_energy");
+  }
   return { ok: reasons.length === 0, ageSkipped: age.skipped, reasons };
 }
 
@@ -179,12 +210,18 @@ export function directionalScore(seeker: CycleParticipant, candidate: CycleParti
     [alignment(a.chronotype, b.chronotype), importance(a, "green_flags")],
     [alignment(a.recharge, b.recharge), importance(a, "energy_pref")],
     [alignment(a.conflict, b.conflict), importance(a, "green_flags")],
-    [a.diet === "none" || b.diet === "none" || a.diet === b.diet ? 1 : 0, importance(a, "green_flags")],
+    [dietCompatible(a.diet, b.diet) ? 1 : 0, importance(a, a.importance?.diet_pref ? "diet_pref" : a.importance?.diet ? "diet" : "green_flags")],
     [smokingScore(a.smoking_pref, b.smokes), importance(a, "smoking_pref")],
     [kidsScore(a.kids_pref, b.kids, a.kids), importance(a, "kids_pref")],
     [a.energy_pref === "doesnt_matter" ? 0.8 : energyCompatible(a.energy_pref, b, a) ? 1 : 0, importance(a, "energy_pref")],
     [textingScore(a.texting_pref, b.texting_pref), importance(a, "texting_pref")],
   ];
+  if (a.religion_pref && a.religion_pref !== "doesnt_matter") {
+    dimensions.push([
+      religionCompatible(a.religion_pref, b.religion) ? 1 : 0,
+      importance(a, "religion_pref"),
+    ]);
+  }
   const totalWeight = dimensions.reduce((sum, [, weight]) => sum + weight, 0);
   const weighted = dimensions.reduce((sum, [value, weight]) => sum + value * weight, 0);
   return Math.round((weighted / totalWeight) * 100);
@@ -194,7 +231,10 @@ function pairKey(a: string, b: string): string {
   return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
 
-function buildPairs(participants: CycleParticipant[]): { pairs: ScoredPair[]; ageSkippedIds: Set<string>; excludedPairCounts: Record<string, number> } {
+export function buildPairs(
+  participants: CycleParticipant[],
+  blockedPairKeys?: Set<string>
+): { pairs: ScoredPair[]; ageSkippedIds: Set<string>; excludedPairCounts: Record<string, number> } {
   const pairs: ScoredPair[] = [];
   const ageSkippedIds = new Set<string>();
   const excludedPairCounts: Record<string, number> = {};
@@ -202,6 +242,11 @@ function buildPairs(participants: CycleParticipant[]): { pairs: ScoredPair[]; ag
     for (let j = i + 1; j < participants.length; j += 1) {
       const a = participants[i];
       const b = participants[j];
+      const key = pairKey(a.id, b.id);
+      if (blockedPairKeys?.has(key)) {
+        excludedPairCounts["blocked_pair"] = (excludedPairCounts["blocked_pair"] ?? 0) + 1;
+        continue;
+      }
       const ab = passesHardFilters(a, b);
       const ba = passesHardFilters(b, a);
       if (ab.ageSkipped || ba.ageSkipped) {
@@ -287,8 +332,16 @@ export function greedyMaxWeightMatching(pairs: ScoredPair[]): ScoredPair[] {
     });
 }
 
-export function runCycle(participants: CycleParticipant[]): CycleResult {
-  const { pairs, ageSkippedIds, excludedPairCounts } = buildPairs(participants);
+export function runCycle(
+  participants: CycleParticipant[],
+  options?: { blockedPairKeys?: Set<string> } | Set<string>
+): CycleResult {
+  const blockedKeys =
+    options instanceof Set ? options : options?.blockedPairKeys;
+  const { pairs, ageSkippedIds, excludedPairCounts } = buildPairs(
+    participants,
+    blockedKeys
+  );
   const preferences: Lists = Object.fromEntries(participants.map((person) => [person.id, []]));
   for (const person of participants) {
     preferences[person.id] = pairs
@@ -315,3 +368,98 @@ export function runCycle(participants: CycleParticipant[]): CycleResult {
 export function canonicalPairKey(aId: string, bId: string): string {
   return pairKey(aId, bId);
 }
+
+/**
+ * Parses MIN_PAIRS threshold from env or string, defaulting to 2.
+ * Invalid values (non-integers, <= 0) safely fall back to 2.
+ */
+export function parseMinPairs(envVal?: string | null): number {
+  const parsed = Number.parseInt(envVal ?? "2", 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 2;
+}
+
+/**
+ * Counts compatible pairs from the participant pool, respecting blocked pairs and hard filters.
+ */
+export function countCompatiblePairs(
+  participants: CycleParticipant[],
+  options?: { blockedPairKeys?: Set<string> } | Set<string>
+): number {
+  const blockedKeys = options instanceof Set ? options : options?.blockedPairKeys;
+  return buildPairs(participants, blockedKeys).pairs.length;
+}
+
+export type CompatiblePairsGuardResult =
+  | {
+      shouldSkip: false;
+      compatiblePairCount: number;
+      minPairs: number;
+    }
+  | {
+      shouldSkip: true;
+      compatiblePairCount: number;
+      minPairs: number;
+      audit: {
+        status: "skipped_min_pairs";
+        skip_reason: string;
+        min_pairs: number;
+        pool_size: number;
+        eligible_pair_count: number;
+        excluded_counts: Record<string, number>;
+        pairs: Array<{ a_id: string; b_id: string; a_score: number; b_score: number }>;
+        algorithm_path: string;
+        unmatched_member_ids: string[];
+        age_filter_skipped_member_ids: string[];
+        timestamp: string;
+      };
+    };
+
+/**
+ * Checks whether the count of compatible pairs meets the MIN_PAIRS threshold.
+ * If below threshold, returns shouldSkip: true and structured audit payload.
+ */
+export function checkCompatiblePairsGuard(
+  participants: CycleParticipant[],
+  options?: {
+    blockedPairKeys?: Set<string>;
+    minPairs?: number;
+    excluded?: Record<string, number>;
+    now?: string;
+  }
+): CompatiblePairsGuardResult {
+  const minPairs = options?.minPairs ?? parseMinPairs(process.env.MIN_PAIRS);
+  const blockedKeys = options?.blockedPairKeys;
+  const { pairs: candidatePairs, ageSkippedIds, excludedPairCounts } = buildPairs(
+    participants,
+    blockedKeys
+  );
+
+  if (candidatePairs.length < minPairs) {
+    const now = options?.now ?? new Date().toISOString();
+    return {
+      shouldSkip: true,
+      compatiblePairCount: candidatePairs.length,
+      minPairs,
+      audit: {
+        status: "skipped_min_pairs",
+        skip_reason: "compatible_pairs_below_minimum",
+        min_pairs: minPairs,
+        pool_size: participants.length,
+        eligible_pair_count: candidatePairs.length,
+        excluded_counts: { ...(options?.excluded ?? {}), ...excludedPairCounts },
+        pairs: [],
+        algorithm_path: "skipped",
+        unmatched_member_ids: participants.map((p) => p.id),
+        age_filter_skipped_member_ids: [...ageSkippedIds].sort(),
+        timestamp: now,
+      },
+    };
+  }
+
+  return {
+    shouldSkip: false,
+    compatiblePairCount: candidatePairs.length,
+    minPairs,
+  };
+}
+

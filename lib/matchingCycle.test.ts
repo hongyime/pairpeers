@@ -126,3 +126,66 @@ test("greedy fallback handles odd pool with non-binary member when irving has no
   assert.ok(["stable-roommates", "greedy-fallback"].includes(result.algorithm));
 });
 
+test("diet hard filter: exact matches pass", () => {
+  const a = person("a", { diet: "halal", importance: { ...answers().importance, diet: "must_have" } });
+  const b = person("b", { diet: "halal" });
+  const result = runCycle([a, b]);
+  assert.equal(result.pairs.length, 1);
+  assert.equal(result.unmatched.length, 0);
+});
+
+test("diet hard filter: none acts as wildcard", () => {
+  const a = person("a", { diet: "vegetarian", importance: { ...answers().importance, diet: "must_have" } });
+  const b = person("b", { diet: "none" });
+  const result = runCycle([a, b]);
+  assert.equal(result.pairs.length, 1);
+  assert.equal(result.unmatched.length, 0);
+
+  // Vice versa: seeker with none, candidate with halal
+  const c = person("c", { diet: "none", importance: { ...answers().importance, diet: "must_have" } });
+  const d = person("d", { diet: "halal" });
+  const result2 = runCycle([c, d]);
+  assert.equal(result2.pairs.length, 1);
+});
+
+test("diet hard filter: incompatible must-have is excluded", () => {
+  const a = person("a", { diet: "halal", importance: { ...answers().importance, diet: "must_have" } });
+  const b = person("b", { diet: "vegetarian" });
+  const result = runCycle([a, b]);
+  assert.equal(result.pairs.length, 0);
+  assert.deepEqual(result.unmatched, ["a", "b"]);
+  assert.equal(result.excludedPairCounts["must_have_diet"], 1);
+});
+
+test("diet hard filter: reciprocal exclusion when either participant sets must-have", () => {
+  // Candidate b sets must-have, seeker a does not
+  const a = person("a", { diet: "no_beef", importance: { ...answers().importance, diet: "important" } });
+  const b = person("b", { diet: "no_pork", importance: { ...answers().importance, diet: "must_have" } });
+  const result = runCycle([a, b]);
+  assert.equal(result.pairs.length, 0);
+  assert.deepEqual(result.unmatched, ["a", "b"]);
+  assert.equal(result.excludedPairCounts["must_have_diet"], 1);
+});
+
+test("religion preference: exact match, wildcard, and incompatible must-have", () => {
+  // Exact match
+  const a = person("a", { religion: "christian", religion_pref: "christian", importance: { ...answers().importance, religion_pref: "must_have" } });
+  const b = person("b", { religion: "christian" });
+  const res1 = runCycle([a, b]);
+  assert.equal(res1.pairs.length, 1);
+
+  // prefer_not_to_say wildcard
+  const c = person("c", { religion: "muslim", religion_pref: "muslim", importance: { ...answers().importance, religion_pref: "must_have" } });
+  const d = person("d", { religion: "prefer_not_to_say" });
+  const res2 = runCycle([c, d]);
+  assert.equal(res2.pairs.length, 1);
+
+  // Incompatible
+  const e = person("e", { religion_pref: "buddhist", importance: { ...answers().importance, religion_pref: "must_have" } });
+  const f = person("f", { religion: "hindu" });
+  const res3 = runCycle([e, f]);
+  assert.equal(res3.pairs.length, 0);
+  assert.equal(res3.excludedPairCounts["must_have_religion"], 1);
+});
+
+

@@ -85,7 +85,9 @@ export default function Home() {
       <footer className="site-footer">
         <div className="page-shell">
           <span className="footer-brand">PairPeers</span>
-          <span className="muted small">© 2026 · Vouched, Not swiped.</span>
+            <span className="muted small">
+              <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link> · © 2026 Vouched, Not swiped.
+            </span>
         </div>
       </footer>
     </main>

@@ -8,10 +8,13 @@ export type Profile = {
   is_member: boolean;
   is_founder: boolean;
   phone_e164: string | null;
+  adult_confirmed_at?: string | null;
+  terms_accepted_at?: string | null;
+  is_banned?: boolean;
 };
 
 const PROFILE_COLS =
-  "id, telegram_id, display_name, telegram_username, is_member, is_founder, phone_e164";
+  "id, telegram_id, display_name, telegram_username, is_member, is_founder, phone_e164, adult_confirmed_at, terms_accepted_at, is_banned";
 
 /**
  * Ensures a profile row exists for the verified Telegram identity.

@@ -49,7 +49,10 @@ export async function GET(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
-  return NextResponse.json({ answers: data?.answers ?? null });
+  return NextResponse.json({
+    answers: data?.answers ?? null,
+    adult_confirmed: Boolean(auth.profile.adult_confirmed_at),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -66,6 +69,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
+  const adultConfirmed =
+    body && typeof body === "object"
+      ? (body as Record<string, unknown>).adult_confirmed
+      : undefined;
+
+  if (adultConfirmed !== true) {
+    return NextResponse.json(
+      { error: "adult_confirmation_required" },
+      { status: 400 }
+    );
+  }
+
   const payload =
     body && typeof body === "object" && "answers" in (body as Record<string, unknown>)
       ? (body as Record<string, unknown>).answers
@@ -76,11 +91,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: validated.error }, { status: 400 });
   }
 
+  const now = new Date().toISOString();
+
   const { error } = await auth.supabase.from("questionnaire_responses").upsert(
     {
       profile_id: auth.profile.id,
       answers: validated.answers,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     },
     { onConflict: "profile_id" }
   );
@@ -88,6 +105,17 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
+
+  const profileUpdates: Record<string, string> = {
+    terms_accepted_at: now,
+  };
+  if (!auth.profile.adult_confirmed_at) {
+    profileUpdates.adult_confirmed_at = now;
+  }
+  await auth.supabase
+    .from("profiles")
+    .update(profileUpdates)
+    .eq("id", auth.profile.id);
 
   await logEvent({
     supabase: auth.supabase,

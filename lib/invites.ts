@@ -26,6 +26,8 @@ export type InvitePreview =
       valid: true;
       inviter_name: string;
       vouch_text: string;
+      relationship_label: string | null;
+      voucher_name_approved: boolean;
       expires_at: string;
     }
   | {
@@ -34,8 +36,9 @@ export type InvitePreview =
     };
 
 /**
- * Public preview for an invite code. Returns ONLY inviter display name,
- * vouch text, and expiry — no Telegram IDs, quotas, or other invitees.
+ * Public preview for an invite code. Returns inviter display name only if
+ * voucher_name_approved is true (otherwise "A friend"), along with vouch text,
+ * relationship label, and expiry.
  */
 export async function getInvitePreview(
   supabase: SupabaseClient,
@@ -44,7 +47,9 @@ export async function getInvitePreview(
   const normalized = code.trim().toUpperCase();
   const { data, error } = await supabase
     .from("invites")
-    .select("vouch_text, expires_at, uses, max_uses, profiles!invites_inviter_id_fkey(display_name, is_banned)")
+    .select(
+      "vouch_text, relationship_label, voucher_name_approved, expires_at, uses, max_uses, profiles!invites_inviter_id_fkey(display_name, is_banned)"
+    )
     .eq("code", normalized)
     .maybeSingle();
   if (error) throw error;
@@ -55,33 +60,55 @@ export async function getInvitePreview(
     return { valid: false, reason: "expired" };
   if (data.uses >= data.max_uses)
     return { valid: false, reason: "already_redeemed" };
+
+  const nameApproved = Boolean(data.voucher_name_approved);
+  const inviterName = nameApproved
+    ? (profile?.display_name?.trim() || "A friend")
+    : "A friend";
+
   return {
     valid: true,
-    inviter_name: profile?.display_name ?? "A friend",
+    inviter_name: inviterName,
     vouch_text: data.vouch_text ?? "",
+    relationship_label: data.relationship_label ?? null,
+    voucher_name_approved: nameApproved,
     expires_at: data.expires_at,
   };
 }
 
 export type CreateInviteResult =
   | { ok: true; code: string; expires_at: string }
-  | { ok: false; error: "not_member" | "quota_exhausted" | "vouch_invalid" };
+  | {
+      ok: false;
+      error:
+        | "not_member"
+        | "quota_exhausted"
+        | "vouch_invalid"
+        | "relationship_invalid";
+    };
 
 /**
  * Creates an invite for a member profile. Enforces: membership (only vouched
- * members can invite — the friends-of-friends guarantee), the 3-invite
- * lifetime quota, and the atomic vouch (no vouch text, no invite).
+ * members can invite), the 3-invite lifetime quota, atomic vouch reference,
+ * relationship label validation, and voucher name approval consent.
  */
 export async function createInvite(
   supabase: SupabaseClient,
   inviterProfileId: string,
   isMember: boolean,
-  vouchText: string
+  vouchText: string,
+  relationshipLabel?: string | null,
+  voucherNameApproved: boolean = false
 ): Promise<CreateInviteResult> {
   if (!isMember) return { ok: false, error: "not_member" };
   const vouch = vouchText.trim();
   if (vouch.length < VOUCH_MIN_LEN || vouch.length > VOUCH_MAX_LEN) {
     return { ok: false, error: "vouch_invalid" };
+  }
+
+  const rel = (relationshipLabel ?? "").trim();
+  if (rel.length < 2 || rel.length > 50) {
+    return { ok: false, error: "relationship_invalid" };
   }
 
   const { count, error: countErr } = await supabase
@@ -105,6 +132,8 @@ export async function createInvite(
         code,
         inviter_id: inviterProfileId,
         vouch_text: vouch,
+        relationship_label: rel,
+        voucher_name_approved: Boolean(voucherNameApproved),
         expires_at,
         max_uses: 1,
       })

@@ -86,7 +86,9 @@ function TrackSection({
           )}
           {q.track === "want" && q.kind !== "text" && (
             <div className="q-importance">
-              <span className="q-importance-label">How much does this matter?</span>
+              <span className="q-importance-label">
+                How much does this matter? <span className="q-hint">Dealbreakers are hard filters</span>
+              </span>
               <div className="opt-grid" role="group" aria-label={`Importance of ${q.label}`}>
                 {IMPORTANCE_OPTIONS.map((imp) => {
                   const ikey = q.key === "age_min" || q.key === "age_max" ? "age_range" : q.key;
@@ -121,6 +123,7 @@ export function QuestionnaireForm({ onComplete, onAction }: {
   const formRef = useRef<HTMLFormElement>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [importance, setImportance] = useState<Record<string, Importance>>({});
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -131,6 +134,9 @@ export function QuestionnaireForm({ onComplete, onAction }: {
         const res = await fetch("/api/questionnaire");
         if (res.ok) {
           const data = await res.json();
+          if (data.adult_confirmed === true) {
+            setAdultConfirmed(true);
+          }
           if (data.answers && typeof data.answers === "object") {
             const { importance: imp, ...rest } = data.answers as Record<string, unknown>;
             const clean: Record<string, AnswerValue> = {};
@@ -183,7 +189,7 @@ export function QuestionnaireForm({ onComplete, onAction }: {
   useEffect(() => {
     const mainButton = webApp?.MainButton;
     if (!mainButton) return;
-    if (answeredCount < required.length) {
+    if (answeredCount < required.length || !adultConfirmed) {
       mainButton.hide();
       return;
     }
@@ -192,24 +198,31 @@ export function QuestionnaireForm({ onComplete, onAction }: {
     mainButton.onClick(click);
     mainButton.show();
     return () => { mainButton.offClick(click); mainButton.hide(); };
-  }, [answeredCount, busy, required.length, webApp]);
+  }, [adultConfirmed, answeredCount, busy, required.length, webApp]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!adultConfirmed) {
+      setStatus("Please confirm you are 18 or older to proceed.");
+      return;
+    }
     setBusy(true);
     setStatus(null);
     try {
       const res = await fetch("/api/questionnaire", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ answers: { ...answers, importance } }),
+        body: JSON.stringify({
+          answers: { ...answers, importance },
+          adult_confirmed: adultConfirmed,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setStatus("Saved. Your answers now power your matching.");
         onComplete?.();
       } else {
-        setStatus(`Couldn’t save: ${data.error ?? "unknown error"}`);
+        setStatus(`Could not save: ${data.error ?? "unknown error"}`);
       }
     } catch {
       setStatus("Network error. Check your connection and try again.");
@@ -260,7 +273,27 @@ export function QuestionnaireForm({ onComplete, onAction }: {
             questions={want}
             {...trackProps}
           />
-          <button type="submit" disabled={busy || answeredCount < required.length} className="btn">
+          <div className="field q-field" style={{ marginTop: "1.5rem", marginBottom: "1.5rem" }}>
+            <label style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={adultConfirmed}
+                onChange={(e) => {
+                  onAction?.();
+                  setAdultConfirmed(e.target.checked);
+                }}
+                required
+                style={{ marginTop: "0.25rem" }}
+              />
+              <span className="small">
+                I confirm I am 18 or older and agree to the{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>{" "}
+                and{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+              </span>
+            </label>
+          </div>
+          <button type="submit" disabled={busy || answeredCount < required.length || !adultConfirmed} className="btn">
             {busy ? "Saving…" : "Save answers"}
           </button>
         </form>

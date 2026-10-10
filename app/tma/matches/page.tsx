@@ -323,13 +323,20 @@ function TmaMatchesContent() {
                     <p className="muted small">Have not met yet. Plan a time or record what happened.</p>
                   )}
                   {m.date.status === "scheduled" && m.date.scheduled_at && (
-                    <p className="small" style={{ color: "var(--primary)", fontWeight: 600 }}>
-                      Date scheduled for{" "}
-                      {new Date(m.date.scheduled_at).toLocaleString([], {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </p>
+                    <div>
+                      <p className="small" style={{ color: "var(--primary)", fontWeight: 600 }}>
+                        Date scheduled for{" "}
+                        {new Date(m.date.scheduled_at).toLocaleString([], {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                      {m.date.venue_text && (
+                        <p className="muted small" style={{ marginTop: "0.2rem" }}>
+                          Venue: <strong>{m.date.venue_text}</strong>
+                        </p>
+                      )}
+                    </div>
                   )}
                   {m.date.status === "happened" && (
                     <p className="small" style={{ color: "#166534", fontWeight: 600 }}>

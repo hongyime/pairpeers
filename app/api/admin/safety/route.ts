@@ -53,7 +53,22 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(30);
 
-  return NextResponse.json({ reports: reports ?? [], invites: invites ?? [] });
+  const { data: appeals } = await supabase
+    .from("safety_appeals")
+    .select(`
+      id,
+      profile_id,
+      reason,
+      details,
+      status,
+      review_notes,
+      reviewed_at,
+      created_at,
+      profile:profiles!safety_appeals_profile_id_fkey(id, display_name, telegram_username, is_banned)
+    `)
+    .order("created_at", { ascending: false });
+
+  return NextResponse.json({ reports: reports ?? [], invites: invites ?? [], appeals: appeals ?? [] });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -91,6 +106,65 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, profile_id: profileId, is_banned: shouldBan });
+  }
+
+  // Handle safety appeal review
+  if (body.appeal_id) {
+    const appealId = String(body.appeal_id);
+    const status = body.status as "pending" | "reviewing" | "approved" | "rejected" | undefined;
+    const reviewNotes = typeof body.review_notes === "string" ? body.review_notes.trim() : undefined;
+    const unbanProfile = Boolean(body.unban_profile ?? (status === "approved"));
+
+    const { data: appeal, error: fetchErr } = await supabase
+      .from("safety_appeals")
+      .select("id, profile_id, status")
+      .eq("id", appealId)
+      .maybeSingle();
+
+    if (fetchErr) return NextResponse.json({ error: "db_error", details: fetchErr.message }, { status: 500 });
+    if (!appeal) return NextResponse.json({ error: "appeal_not_found" }, { status: 404 });
+
+    const patch: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (status) {
+      patch.status = status;
+      if (status === "approved" || status === "rejected") {
+        patch.reviewed_at = new Date().toISOString();
+        if (profile) patch.reviewed_by = profile.id;
+      }
+    }
+    if (reviewNotes !== undefined) {
+      patch.review_notes = reviewNotes;
+    }
+
+    const { error: updErr } = await supabase
+      .from("safety_appeals")
+      .update(patch)
+      .eq("id", appealId);
+
+    if (updErr) return NextResponse.json({ error: "db_error", details: updErr.message }, { status: 500 });
+
+    if (unbanProfile && appeal.profile_id) {
+      await supabase.from("profiles").update({ is_banned: false }).eq("id", appeal.profile_id);
+      await logEvent({
+        supabase,
+        eventType: "profile_unbanned",
+        actorProfileId: profile?.id ?? null,
+        targetId: appeal.profile_id,
+        metadata: { reason: "appeal_approved", appeal_id: appealId, is_banned: false },
+      });
+    }
+
+    await logEvent({
+      supabase,
+      eventType: "safety_appeal_reviewed",
+      actorProfileId: profile?.id ?? null,
+      targetId: appealId,
+      metadata: { status: patch.status, unban_profile: unbanProfile },
+    });
+
+    return NextResponse.json({ ok: true, appeal_id: appealId, status: patch.status ?? appeal.status });
   }
 
   if (!body.report_id) {
