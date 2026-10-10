@@ -5,6 +5,7 @@ import { redeemInvite } from "@/lib/invites";
 import { ensureProfile } from "@/lib/profiles";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { logEvent } from "@/lib/events";
 
 /**
  * Redeems an invite for the authenticated Telegram identity.
@@ -46,9 +47,18 @@ export async function POST(
     const status =
       result.error === "invalid_code" ? 404
       : result.error === "expired" ? 410
+      : result.error === "banned_code" ? 403
       : result.error === "already_redeemed" ? 409
       : 400;
     return NextResponse.json({ error: result.error }, { status });
   }
+  await logEvent({
+    supabase,
+    eventType: "invite_redeemed",
+    actorProfileId: profile.id,
+    targetId: code,
+    metadata: { code_hash: ipHash },
+  });
+
   return NextResponse.json({ ok: true });
 }

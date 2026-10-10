@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionTelegramId } from "@/lib/auth";
-import { getProfileByTelegramId } from "@/lib/profiles";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { requireFounder } from "@/lib/adminAuth";
 
 /**
  * POST /api/admin/bot/webhook — register the Telegram webhook for
@@ -20,20 +18,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 
-  const cronSecret = process.env.CRON_SECRET;
-  const cronOk =
-    !!cronSecret &&
-    req.headers.get("authorization") === `Bearer ${cronSecret}`;
-
-  if (!cronOk) {
-    const supabase = await createSupabaseServerClient();
-    const telegramId = await getSessionTelegramId(req);
-    const profile = telegramId
-      ? await getProfileByTelegramId(supabase, telegramId)
-      : null;
-    if (!profile?.is_founder) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+  const auth = await requireFounder(req);
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const action = req.nextUrl.searchParams.get("action") ?? "set";

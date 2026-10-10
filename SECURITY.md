@@ -48,3 +48,9 @@ Bot PRs (Dependabot, Snyk, Sourcery, DeepSource, Copilot SWE) are merged with --
 1. These bots only modify dependency manifests and lockfiles
 2. TruffleHog and CodeQL scan every commit regardless of merge method
 3. The Build Check workflow validates the build before --admin merge is triggered
+
+## Account Lifecycle and Data Retention
+
+- **Self-Service Export**: Members can request a full JSON export of their own personal data (`GET /api/account/export`). Partner answers and contact details are strictly excluded.
+- **Anonymization over Hard Delete**: Deletion (`POST /api/account/delete`) scrubs personal identifiers and wipes questionnaire answers while preserving partner match integrity. See [docs/data-retention.md](docs/data-retention.md) for data class retention schedules.
+- **Ban Persistence**: Safety bans survive account deletion and prevent re-registration evasion.

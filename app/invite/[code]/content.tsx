@@ -19,6 +19,10 @@ const INVALID_COPY = {
     title: "Already claimed",
     body: "This invite has already been claimed. Each invite works exactly once.",
   },
+  banned_code: {
+    title: "Invite unavailable",
+    body: "This invite is no longer valid.",
+  },
 } as const;
 
 /**

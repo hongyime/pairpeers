@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { AdminContent } from "./content";
 
-export const metadata = { title: "Admin — PairPeers" };
+export const metadata = { title: "Admin · PairPeers" };
 
 /** Shell prerenders statically; the founder check reads the session (dynamic). */
 export default function AdminPage() {

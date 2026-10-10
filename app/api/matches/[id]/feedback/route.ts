@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionTelegramId } from "@/lib/auth";
 import { getProfileByTelegramId } from "@/lib/profiles";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { logEvent } from "@/lib/events";
 
 export async function POST(
   req: NextRequest,
@@ -44,6 +45,20 @@ export async function POST(
     return NextResponse.json({ error: "match_not_accepted" }, { status: 400 });
   }
 
+  const { data: dateRecord } = await supabase
+    .from("match_dates")
+    .select("status")
+    .eq("match_id", match.id)
+    .maybeSingle();
+
+  const dateStatus = dateRecord?.status ?? "not_planned";
+  if (dateStatus !== "happened" && dateStatus !== "skipped") {
+    return NextResponse.json(
+      { error: "date_not_completed" },
+      { status: 400 }
+    );
+  }
+
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body.would_meet_again !== "boolean") {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
@@ -68,6 +83,15 @@ export async function POST(
   if (upsertErr) {
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
+
+  await logEvent({
+    supabase,
+    eventType: "feedback_submitted",
+    actorProfileId: profile.id,
+    matchId: match.id,
+    targetId: `${match.id}:${profile.id}`,
+    metadata: { would_meet_again: body.would_meet_again, has_note: Boolean(note) },
+  });
 
   return NextResponse.json({ ok: true });
 }

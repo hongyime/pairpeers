@@ -81,5 +81,6 @@ supabase/.temp/
 !.deepsource.toml
 skills/
 skills-lock.json
-docs/
+docs/*
+!docs/data-retention.md
 # End AI / editor dot directories (managed via sourcerepo)

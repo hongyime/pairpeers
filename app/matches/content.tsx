@@ -62,6 +62,12 @@ export async function MatchesContent() {
     .eq("profile_id", profile.id)
     .in("match_id", matchIds);
 
+  // Fetch match_dates for date coordination status
+  const { data: matchDates } = await supabase
+    .from("match_dates")
+    .select("match_id, status, scheduled_at, checked_in_at")
+    .in("match_id", matchIds);
+
   // Fetch questionnaire responses for rationale generation
   const allProfileIds = [...new Set([profile.id, ...partnerIds])];
   const { data: qResponses } = await supabase
@@ -124,6 +130,8 @@ export async function MatchesContent() {
               };
             }
 
+            const dateRecord = (matchDates ?? []).find((d) => d.match_id === match.id) ?? null;
+
             return (
               <MatchItem
                 key={match.id}
@@ -137,6 +145,15 @@ export async function MatchesContent() {
                     ? {
                         would_meet_again: feedback.would_meet_again,
                         note: feedback.note,
+                      }
+                    : null
+                }
+                initialDate={
+                  dateRecord
+                    ? {
+                        status: dateRecord.status,
+                        scheduled_at: dateRecord.scheduled_at,
+                        checked_in_at: dateRecord.checked_in_at,
                       }
                     : null
                 }

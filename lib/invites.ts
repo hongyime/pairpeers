@@ -5,7 +5,7 @@ import {
   INVITE_TTL_DAYS,
   VOUCH_MIN_LEN,
   VOUCH_MAX_LEN,
-} from "./inviteConstants";
+} from "./inviteConstants.ts";
 
 export { INVITES_PER_USER, INVITE_TTL_DAYS, VOUCH_MIN_LEN, VOUCH_MAX_LEN };
 
@@ -28,7 +28,10 @@ export type InvitePreview =
       vouch_text: string;
       expires_at: string;
     }
-  | { valid: false; reason: "invalid_code" | "expired" | "already_redeemed" };
+  | {
+      valid: false;
+      reason: "invalid_code" | "expired" | "already_redeemed" | "banned_code";
+    };
 
 /**
  * Public preview for an invite code. Returns ONLY inviter display name,
@@ -41,16 +44,17 @@ export async function getInvitePreview(
   const normalized = code.trim().toUpperCase();
   const { data, error } = await supabase
     .from("invites")
-    .select("vouch_text, expires_at, uses, max_uses, profiles!invites_inviter_id_fkey(display_name)")
+    .select("vouch_text, expires_at, uses, max_uses, profiles!invites_inviter_id_fkey(display_name, is_banned)")
     .eq("code", normalized)
     .maybeSingle();
   if (error) throw error;
   if (!data) return { valid: false, reason: "invalid_code" };
+  const profile = data.profiles as unknown as { display_name: string | null; is_banned?: boolean } | null;
+  if (profile?.is_banned) return { valid: false, reason: "banned_code" };
   if (new Date(data.expires_at) <= new Date())
     return { valid: false, reason: "expired" };
   if (data.uses >= data.max_uses)
     return { valid: false, reason: "already_redeemed" };
-  const profile = data.profiles as unknown as { display_name: string | null } | null;
   return {
     valid: true,
     inviter_name: profile?.display_name ?? "A friend",
@@ -121,6 +125,7 @@ export type RedeemResult =
         | "expired"
         | "already_redeemed"
         | "self_redeem"
+        | "banned_code"
         | "not_member";
     };
 

@@ -64,5 +64,16 @@
   3. Gap 3: Post-acceptance loop (`POST /api/matches/[id]/feedback`, migration 0008, 7d/14d Telegram nudges in sweep tracked in `match_nudges`).
   4. Gap 4: Match rationale generator (`lib/matchRationale.ts`, unit tests, contact details strictly hidden until mutual acceptance, scores never displayed).
 - Tests & build: all 27 unit tests pass (`npm test`), `npm run build` passes with 0 errors. Zero em dashes in user-facing copy. Service-role server queries used for RLS safety.
-
-
+## 2026-10-10 - Batch 2 should-have, nice-to-have, and tech debt build (Antigravity)
+- Branch `agy/batch2-shouldhave` completed and verified.
+- Delivered:
+  1. Item 1: Dead code removal (`lib/matching.ts`, `app/questionnaire/form.tsx`, `app/questionnaire/gate.tsx`) and updated `README.md`.
+  2. Item 2: Open-pool matching semantics in `lib/matchingCycle.ts` supporting non-binary identities and seeking 'everyone' without binary coercion.
+  3. Item 3: Admin auth infrastructure (`lib/adminAuth.ts`, `app/admin/layout.tsx` server founder gate with Suspense, dedicated subpages).
+  4. Item 4: Pool-balance monitoring (`lib/poolMetrics.ts`, `app/api/admin/pool/route.ts`, `app/admin/pool/page.tsx`).
+  5. Item 5: Append-only event instrumentation (`0009_events.sql`, `lib/events.ts`, `app/api/admin/metrics/route.ts`, `app/admin/metrics/page.tsx`).
+  6. Item 6: Date scheduling & check-in loop (`0010_match_dates.sql`, `lib/matchDates.ts`, `app/api/matches/[id]/date/route.ts`, feedback gating on happened/skipped).
+  7. Item 7: Safety operations & ban model (`0011_safety_ops.sql`, `app/api/reports/route.ts`, `app/api/admin/safety/route.ts`, `app/admin/safety/page.tsx`). Implemented Bryan's decision: BAN-only model (`is_banned`), ban/unban admin actions, banned profiles invalidate unused invites, dropped separate invite suspension state.
+  8. Item 8: Mini App matches parity (`app/tma/matches/page.tsx`, `app/tma/page.tsx` entry, `lib/tmaMatches.ts` + tests) with inline opt-in, date check-ins, contact reveal, feedback, and Telegram haptics.
+  9. Item 9: Account anonymization & retention (`0012_account_retention.sql`, `lib/accountData.ts`, `app/api/account/export/route.ts`, `app/api/account/delete/route.ts`, `docs/data-retention.md`, `SECURITY.md` update). Tombstone anonymization preserves partner match histories.
+- Verification: All 65 unit tests pass (`npm test`). Full production build (`npm run build`) passes cleanly with 38 generated routes and 0 errors. Zero em dashes in user copy. Service-role-only RLS on all new tables.

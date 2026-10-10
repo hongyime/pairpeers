@@ -1,24 +1,9 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
-import { getProfileByTelegramId } from "@/lib/profiles";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { requireFounderSession } from "@/lib/adminAuth";
 import { StatusChecks } from "./controls";
 
 /** Founder-only admin content: reads the session, so it renders dynamically. */
 export async function AdminContent() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  const secret = process.env.SESSION_SECRET;
-  const telegramId =
-    secret && token
-      ? (await verifySessionToken(token, secret))?.telegramId ?? null
-      : null;
-  if (!telegramId) redirect("/login");
-
-  const supabase = await createSupabaseServerClient();
-  const profile = await getProfileByTelegramId(supabase, telegramId);
-  if (!profile?.is_founder) redirect("/login");
+  await requireFounderSession();
 
   return (
     <main className="centered">

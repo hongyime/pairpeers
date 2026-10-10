@@ -1,5 +1,5 @@
-import { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "./session";
+import type { NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "./session.ts";
 
 /**
  * Verifies the session inside the handler (defense in depth — never rely
