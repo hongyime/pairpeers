@@ -54,6 +54,38 @@ export function MatchItem({
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
+  // Block state
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
+
+  async function handleBlock() {
+    if (
+      !window.confirm(
+        "Block this introduction? You and this person will never be paired in any future cycle."
+      )
+    ) {
+      return;
+    }
+    setBlockLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/block`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error ?? "Could not block introduction.");
+        return;
+      }
+      setIsBlocked(true);
+      router.refresh();
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setBlockLoading(false);
+    }
+  }
+
   async function handleAction(action: "accept" | "decline") {
     setLoading(true);
     setErrorMsg(null);
@@ -142,6 +174,8 @@ export function MatchItem({
   }
 
   const canGiveFeedback = dateStatus === "happened" || dateStatus === "skipped";
+
+  if (isBlocked) return null;
 
   return (
     <li className="match-card">
@@ -390,6 +424,17 @@ export function MatchItem({
           </div>
         </>
       )}
+      <div style={{ marginTop: "1rem", borderTop: "1px solid var(--line)", paddingTop: "0.5rem", display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="chip-btn"
+          style={{ color: "#991b1b", fontSize: "0.85rem" }}
+          disabled={blockLoading}
+          onClick={handleBlock}
+        >
+          {blockLoading ? "Blocking…" : "Block introduction"}
+        </button>
+      </div>
     </li>
   );
 }

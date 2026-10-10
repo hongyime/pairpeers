@@ -7,6 +7,7 @@ import { validateAnswers } from "@/lib/questionnaire";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { logEvent } from "@/lib/events";
 import { getSweepNudgeText } from "@/lib/matchDates";
+import { loadBlockedPairKeys } from "@/lib/matchBlocks";
 
 type Audit = {
   status?: "completed" | "skipped_min_pool";
@@ -91,10 +92,16 @@ export async function POST(req: NextRequest) {
 
   if (open.data) return responseForCycle(open.data.id, (open.data.audit ?? {}) as Audit);
 
-  const [{ data: profiles, error: profilesError }, { data: responses, error: responsesError }, { data: existingMatches, error: matchesError }] = await Promise.all([
+  const [
+    { data: profiles, error: profilesError },
+    { data: responses, error: responsesError },
+    { data: existingMatches, error: matchesError },
+    blockedPairKeys,
+  ] = await Promise.all([
     supabase.from("profiles").select("id, telegram_id, is_member, is_banned"),
     supabase.from("questionnaire_responses").select("profile_id, answers"),
     supabase.from("matches").select("a_id, b_id, status").in("status", ["pending", "accepted"]),
+    loadBlockedPairKeys(supabase).catch(() => new Set<string>()),
   ]);
   if (profilesError || responsesError || matchesError) return NextResponse.json({ error: "db_error" }, { status: 500 });
 
@@ -174,7 +181,7 @@ export async function POST(req: NextRequest) {
     });
     return responseForCycle(skippedCycle.id, audit);
   }
-  const result = runCycle(participants);
+  const result = runCycle(participants, { blockedPairKeys });
   const now = new Date().toISOString();
   const audit: Audit = {
     pool_size: participants.length,

@@ -231,7 +231,10 @@ function pairKey(a: string, b: string): string {
   return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
 
-function buildPairs(participants: CycleParticipant[]): { pairs: ScoredPair[]; ageSkippedIds: Set<string>; excludedPairCounts: Record<string, number> } {
+export function buildPairs(
+  participants: CycleParticipant[],
+  blockedPairKeys?: Set<string>
+): { pairs: ScoredPair[]; ageSkippedIds: Set<string>; excludedPairCounts: Record<string, number> } {
   const pairs: ScoredPair[] = [];
   const ageSkippedIds = new Set<string>();
   const excludedPairCounts: Record<string, number> = {};
@@ -239,6 +242,11 @@ function buildPairs(participants: CycleParticipant[]): { pairs: ScoredPair[]; ag
     for (let j = i + 1; j < participants.length; j += 1) {
       const a = participants[i];
       const b = participants[j];
+      const key = pairKey(a.id, b.id);
+      if (blockedPairKeys?.has(key)) {
+        excludedPairCounts["blocked_pair"] = (excludedPairCounts["blocked_pair"] ?? 0) + 1;
+        continue;
+      }
       const ab = passesHardFilters(a, b);
       const ba = passesHardFilters(b, a);
       if (ab.ageSkipped || ba.ageSkipped) {
@@ -324,8 +332,16 @@ export function greedyMaxWeightMatching(pairs: ScoredPair[]): ScoredPair[] {
     });
 }
 
-export function runCycle(participants: CycleParticipant[]): CycleResult {
-  const { pairs, ageSkippedIds, excludedPairCounts } = buildPairs(participants);
+export function runCycle(
+  participants: CycleParticipant[],
+  options?: { blockedPairKeys?: Set<string> } | Set<string>
+): CycleResult {
+  const blockedKeys =
+    options instanceof Set ? options : options?.blockedPairKeys;
+  const { pairs, ageSkippedIds, excludedPairCounts } = buildPairs(
+    participants,
+    blockedKeys
+  );
   const preferences: Lists = Object.fromEntries(participants.map((person) => [person.id, []]));
   for (const person of participants) {
     preferences[person.id] = pairs
