@@ -13,6 +13,8 @@ jobs:
         run: |
           len=$(printf "%s" "${{ secrets.PAIRPEERS_CRON_SECRET }}" | wc -c)
           echo "secret length: $len"
+          len2=$(printf "%s" "${{ secrets._DEBUG_TEST }}" | wc -c)
+          echo "test secret length: $len2"
       - name: Trigger match sweep
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
