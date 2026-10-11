@@ -7,10 +7,6 @@
     {
       "path": "/api/admin/match/run",
       "schedule": "0 9 * * 1"
-    },
-    {
-      "path": "/api/admin/match/run?action=sweep",
-      "schedule": "0 2 * * *"
     }
   ]
 }
