@@ -90,5 +90,15 @@
   6. Item 6: Compatible-pair cycle guard (lib/matchingCycle.ts pair counting and guard helper, MIN_PAIRS check in /api/admin/match/run, audit recording for skipped_min_pairs) — completed.
 - Verification status: All 96 unit tests passing (`npm test`), full build passing cleanly (`npm run build`, 43 routes). Zero em dashes in user copy. Service-role-only RLS on all new tables.
 
+<!-- MOLT_AUTO_START -->
+## Auto State
 
-
+- Updated: 2026-10-11 17:58:51 +08:00
+- Machine: PRAWN-T14
+- Harness: codex
+- Event: session-start
+- Branch: main
+- HEAD: c114200
+- Dirty files: 0
+- Resume hint: Read .agents/STATE.md, then the latest file in .agents/handoffs/ if present.
+<!-- MOLT_AUTO_END -->

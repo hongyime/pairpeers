@@ -21,3 +21,4 @@
   4. Block & appeal: global pair exclusion across all cycles; banned users retain appeal submission capability with profile + IP rate limiting and instant founder Telegram alert.
   5. Date planning: up to 3 slots proposed with curated venue picker + custom venue; only non-proposer can select; Telegram alerts on proposal and confirmation; existing check-in loop reused.
   6. Compatible-pair cycle guard: MIN_PAIRS threshold (default 2) skips matching when compatible pairs fall below minimum even if pool heads exceed MATCH_MIN_POOL; audit records skipped_min_pairs.
+- 2026-10-11 17:58:51 +08:00 [PRAWN-T14/codex/session-start] branch=main head=c114200 dirty=0
